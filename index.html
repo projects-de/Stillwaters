@@ -478,7 +478,8 @@
 
       try {
         const headers = { Accept: 'application/json' };
-        if (CONFIG.GET_SLOTS_KEY) headers['x-functions-key'] = CONFIG.GET_SLOTS_KEY; // works either via header or query param
+        // NOTE: we pass the key via the URL (?code=...) to avoid a CORS preflight on GET.
+        // Do not send x-functions-key header here.
 
         const response = await fetch(url, { method: 'GET', headers });
         if (!response.ok) throw new Error(`Failed to load available slots (${response.status})`);
@@ -651,7 +652,8 @@
 
         const url = withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY);
         const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
-        if (CONFIG.BOOK_APPOINTMENT_KEY) headers['x-functions-key'] = CONFIG.BOOK_APPOINTMENT_KEY;
+        // We pass the key via the URL (?code=...) to simplify CORS. Avoid x-functions-key header.
+        // (POST with JSON will still preflight, ensure CORS is configured on the Function App.)
 
         const resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(appointmentData) });
         if (!resp.ok) {
