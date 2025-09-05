@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Still Waters Counseling - Book Your Appointment</title>
-  <!-- Single-file build | v2025-09-06_clean -->
+  <!-- Single-file build | v2025-09-06_20min-slots -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -70,12 +70,17 @@
     .checkbox-group input[type="checkbox"] { margin-right: 10px; margin-top: 5px; width: 20px; height: 20px; cursor: pointer; }
     .checkbox-group label { cursor: pointer; margin-bottom: 0; flex: 1; }
 
-    .time-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px; }
-    .time-slot { padding: 15px; border: 2px solid var(--gray-light); border-radius: 10px; cursor: pointer; transition: all 0.3s ease; background: var(--white); }
-    .time-slot:hover { border-color: var(--secondary-color); transform: translateY(-2px); box-shadow: var(--shadow); }
-    .time-slot.selected { background: var(--secondary-color); color: var(--white); border-color: var(--secondary-color); }
-    .time-slot .date { font-weight: 600; font-size: 1rem; margin-bottom: 5px; }
-    .time-slot .time { font-size: 0.9rem; opacity: 0.9; }
+    /* Cards for each day-range */
+    .time-slots { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; }
+    .time-slot { padding: 15px; border: 2px solid var(--gray-light); border-radius: 12px; background: var(--white); box-shadow: var(--shadow); }
+    .time-slot .date { font-weight: 700; font-size: 1rem; margin-bottom: 10px; color: var(--gray-dark); }
+    .time-slot .range { font-size: 0.9rem; color: var(--gray-medium); margin-bottom: 10px; }
+
+    /* Grid of 20-min chips */
+    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+    .slot-chip { user-select: none; text-align: center; padding: 10px 12px; border: 2px solid var(--gray-light); border-radius: 9999px; background: var(--white); font-size: 0.95rem; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease, color .15s ease; }
+    .slot-chip:hover { transform: translateY(-1px); border-color: var(--secondary-color); box-shadow: var(--shadow); }
+    .slot-chip.selected { background: var(--secondary-color); color: var(--white); border-color: var(--secondary-color); }
 
     .hidden { display: none !important; }
 
@@ -94,9 +99,6 @@
     @keyframes slideDown { from { opacity: 0; transform: translateY(-20px);} to { opacity: 1; transform: translateY(0);} }
     .error-message { background: var(--danger-color); color: var(--white); padding: 15px; border-radius: 10px; text-align: center; margin: 20px 0; display: none; }
 
-    .time-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; padding: 15px; background: var(--light-bg); border-radius: 10px; }
-    .time-picker label { font-size: 0.9rem; color: var(--gray-medium); }
-
     @media (max-width: 768px) {
       .header h1 { font-size: 2rem; }
       .form-row { grid-template-columns: 1fr; }
@@ -104,7 +106,7 @@
       .time-slots { grid-template-columns: 1fr; }
       .button-group { flex-direction: column; }
       .btn { width: 100%; }
-      .time-picker { grid-template-columns: 1fr; }
+      .slot-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
     }
 
     .loading-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 9999; }
@@ -121,7 +123,7 @@
     </div>
 
     <div class="emergency-notice">
-      <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/></svg>
       <span>If you are experiencing an emergency, please dial 911 immediately</span>
     </div>
 
@@ -206,24 +208,8 @@
           <button type="button" class="btn btn-secondary" id="loadSlotsBtn">Load Available Times</button>
         </div>
         <div id="timeSlots" class="time-slots"></div>
-
-        <div id="timePickerSection" class="form-group hidden">
-          <div class="time-picker">
-            <div>
-              <label for="startTime">Preferred Start Time <span class="required">*</span></label>
-              <select id="startTime" name="startTime">
-                <option value="">Select start time</option>
-              </select>
-            </div>
-            <div>
-              <label for="endTime">Preferred End Time <span class="required">*</span></label>
-              <select id="endTime" name="endTime">
-                <option value="">Select end time</option>
-              </select>
-            </div>
-          </div>
-          <small style="color: var(--gray-medium); margin-top: 10px; display: block;">Select your preferred 2-hour window within the available time slot</small>
-        </div>
+        <!-- Legacy 2-hour picker kept hidden (not used anymore) -->
+        <div id="timePickerSection" class="form-group hidden"></div>
       </div>
 
       <div class="form-section">
@@ -274,7 +260,8 @@
       BOOK_APPOINTMENT_URL: 'https://sw-function-b6c4h9cnexhbh4g3.canadacentral-01.azurewebsites.net/api/CreateEvent',
       GET_SLOTS_KEY: '',           // leave blank for Anonymous
       BOOK_APPOINTMENT_KEY: '',    // put CreateEvent key here if protected
-      TIMEZONE: 'Pacific Standard Time'
+      TIMEZONE: 'Pacific Standard Time',
+      SLOT_MINUTES: 20
     };
 
     function withKey(url, key) {
@@ -283,9 +270,9 @@
       catch(e) { var sep = url.indexOf('?')>=0 ? '&' : '?'; return url + sep + 'code=' + encodeURIComponent(key); }
     }
 
-    var selectedSlot = null;
-    var selectedDate = null;
-    var availableSlots = [];
+    // Global selection
+    var selectedSlot = null; // { date: Date, start:{hour,minute}, end:{hour,minute}, display:string }
+    var availableSlots = []; // parsed day-ranges
 
     document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('bookingForm').addEventListener('submit', handleSubmit);
@@ -293,7 +280,9 @@
       document.getElementById('clearFormBtn').addEventListener('click', clearForm);
 
       var typeCards = document.querySelectorAll('.radio-option');
-      for (var i=0;i<typeCards.length;i++) typeCards[i].addEventListener('click', function(){ selectAppointmentType(this.getAttribute('data-type')); });
+      for (var i=0;i<typeCards.length;i++) {
+        typeCards[i].addEventListener('click', function(){ selectAppointmentType(this.getAttribute('data-type')); });
+      }
 
       document.getElementById('phone').addEventListener('input', function (e) {
         var v = e.target.value.replace(/\D/g,'').slice(0,10);
@@ -301,8 +290,6 @@
         else if (v.length>3) e.target.value = v.slice(0,3)+'-'+v.slice(3);
         else e.target.value = v;
       });
-
-      document.getElementById('startTime').addEventListener('change', updateEndTimeOptions);
     });
 
     function generateUUID(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){ var r=Math.random()*16|0, v=c==='x'?r:(r&0x3)|0x8; return v.toString(16).toUpperCase(); }); }
@@ -314,15 +301,23 @@
       for (var i=0;i<cards.length;i++) cards[i].classList.remove('selected');
       var chosen = document.querySelector('.radio-option[data-type="'+type+'"]');
       if (chosen) chosen.classList.add('selected');
+
       var inPerson = document.getElementById('inPersonDetails');
-      if (type==='inperson'){ inPerson.classList.remove('hidden'); document.getElementById('address').required=true; document.getElementById('arrivalWindow').required=true; }
-      else { inPerson.classList.add('hidden'); document.getElementById('address').required=false; document.getElementById('arrivalWindow').required=false; }
+      if (type==='inperson'){
+        inPerson.classList.remove('hidden');
+        document.getElementById('address').required=true;
+        document.getElementById('arrivalWindow').required=true;
+      } else {
+        inPerson.classList.add('hidden');
+        document.getElementById('address').required=false;
+        document.getElementById('arrivalWindow').required=false;
+      }
     }
 
     function parseSlotString(slotStr){
       var parts = slotStr.split(', ');
-      var datePart = parts[0];
-      var timePart = parts[1];
+      var datePart = parts[0]; // e.g. "05 Sep 2025"
+      var timePart = parts[1]; // e.g. "09:00 AM - 02:00 PM"
       var dt = datePart.split(' ');
       var day = parseInt(dt[0],10); var mon = dt[1]; var year = parseInt(dt[2],10);
       var monthMap = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
@@ -331,10 +326,36 @@
       return { date: new Date(year, monthMap[mon], day), dateStr: datePart, startTimeStr: startTimeStr, endTimeStr: endTimeStr, originalString: slotStr };
     }
 
-    function convertTo24Hour(timeStr){ var t=timeStr.trim().split(' '), hm=t[0].split(':'), h=parseInt(hm[0],10), m=parseInt(hm[1],10), p=t[1]; if(p==='PM'&&h!==12)h+=12; if(p==='AM'&&h===12)h=0; return {hours:h, minutes:m}; }
+    function convertTo24Hour(timeStr){
+      var t=timeStr.trim().split(' ');
+      var hm=t[0].split(':'), h=parseInt(hm[0],10), m=parseInt(hm[1],10), p=t[1];
+      if(p==='PM'&&h!==12)h+=12;
+      if(p==='AM'&&h===12)h=0;
+      return {hours:h, minutes:m};
+    }
     function p2(n){return (n<10?'0':'')+n;}
-    function formatDateTimeForAPI(date,hour,minute){ return date.getFullYear()+'-'+p2(date.getMonth()+1)+'-'+p2(date.getDate())+'T'+p2(hour)+':'+p2(minute)+':00'; }
-    function humanTimeDisplay(date, start, end){ var mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; function t12(h,m){ var ap=h>=12?'pm':'am'; var hh=h%12===0?12:h%12; return hh+(m?':'+p2(m):'')+ap; } return date.getDate()+' '+mons[date.getMonth()]+' '+date.getFullYear()+', '+t12(start.hour,start.minute)+'–'+t12(end.hour,end.minute); }
+    function formatDateTimeForAPI(date,hour,minute){
+      return date.getFullYear()+'-'+p2(date.getMonth()+1)+'-'+p2(date.getDate())+'T'+p2(hour)+':'+p2(minute)+':00';
+    }
+
+    function t12(h,m){
+      var ap = h>=12 ? 'PM' : 'AM';
+      var hh = h%12===0 ? 12 : h%12;
+      return hh+':'+p2(m)+' '+ap;
+    }
+    function t12rangeLabel(sH,sM,eH,eM){
+      var sAP = sH>=12?'PM':'AM';
+      var eAP = eH>=12?'PM':'AM';
+      var sHH = sH%12===0?12:sH%12;
+      var eHH = eH%12===0?12:eH%12;
+      if (sAP===eAP) {
+        return sHH+':'+p2(sM)+'–'+eHH+':'+p2(eM)+' '+sAP;
+      } else {
+        return sHH+':'+p2(sM)+' '+sAP+'–'+eHH+':'+p2(eM)+' '+eAP;
+      }
+    }
+    function hmToMinutes(h,m){ return h*60+m; }
+    function minutesToHM(total){ return {hour: Math.floor(total/60), minute: total%60}; }
 
     async function loadAvailableSlots(){
       var overlay=document.getElementById('loadingOverlay'); overlay.classList.add('active');
@@ -345,70 +366,261 @@
         console.log('[GET /Calender]', resp.status, text);
         if(!resp.ok) throw new Error('Failed to load slots ('+resp.status+')');
         var data = text? JSON.parse(text):{};
-        var list = Array.isArray(data)? data : (Array.isArray(data.free_slots)? data.free_slots : (Array.isArray(data.freeSlots)? data.freeSlots : (Array.isArray(data.slots)? data.slots : [])));
+        var list = Array.isArray(data)? data
+                  : (Array.isArray(data.free_slots)? data.free_slots
+                  : (Array.isArray(data.freeSlots)? data.freeSlots
+                  : (Array.isArray(data.slots)? data.slots : [])));
         availableSlots = list.map(parseSlotString);
         displayAvailableSlots(availableSlots);
-      }catch(e){ console.error(e); showError('Failed to load available appointment times. Please try again.'); }
+      }catch(e){
+        console.error(e);
+        showError('Failed to load available appointment times. Please try again.');
+      }
       finally{ overlay.classList.remove('active'); }
     }
 
+    function splitIntoTwentyMinuteChips(slot){
+      var start24 = convertTo24Hour(slot.startTimeStr);
+      var end24   = convertTo24Hour(slot.endTimeStr);
+      var startMin = hmToMinutes(start24.hours, start24.minutes);
+      var endMin   = hmToMinutes(end24.hours, end24.minutes);
+      var size = CONFIG.SLOT_MINUTES;
+
+      var chips = [];
+      for (var m = startMin; m + size <= endMin; m += size) {
+        var s = minutesToHM(m);
+        var e = minutesToHM(m + size);
+        chips.push({
+          start: { hour: s.hour, minute: s.minute },
+          end:   { hour: e.hour, minute: e.minute },
+          label: t12rangeLabel(s.hour, s.minute, e.hour, e.minute)
+        });
+      }
+      return chips;
+    }
+
     function displayAvailableSlots(slots){
-      var c=document.getElementById('timeSlots'); c.innerHTML='';
-      if(!slots||!slots.length){ c.innerHTML='<p>No available slots returned by the server. Please check back later.</p>'; return; }
+      var container = document.getElementById('timeSlots');
+      container.innerHTML='';
+
+      if(!slots||!slots.length){
+        container.innerHTML='<p>No available slots returned by the server. Please check back later.</p>';
+        return;
+      }
+
+      // Clear any previous selection
+      selectedSlot = null;
+
+      // Build a card per returned window, each containing 20-min chips
+      var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       for(var i=0;i<slots.length;i++){
-        var s=slots[i]; var el=document.createElement('div'); el.className='time-slot'; el.setAttribute('data-slot-index', String(i));
-        el.innerHTML='<div class="date">'+s.dateStr+'</div><div class="time">'+s.startTimeStr+' - '+s.endTimeStr+'</div>';
-        (function(slot, idx){ el.addEventListener('click', function(){ selectTimeSlot(slot, idx); }); })(s, i);
-        c.appendChild(el);
+        var s = slots[i];
+        var card = document.createElement('div');
+        card.className = 'time-slot';
+
+        var dow = days[s.date.getDay()];
+        var header = document.createElement('div');
+        header.className = 'date';
+        header.textContent = dow + ' ' + s.dateStr;
+
+        var sub = document.createElement('div');
+        sub.className = 'range';
+        sub.textContent = s.startTimeStr + ' - ' + s.endTimeStr;
+
+        var grid = document.createElement('div');
+        grid.className = 'slot-grid';
+
+        var chips = splitIntoTwentyMinuteChips(s);
+        if (chips.length === 0) {
+          var emptyMsg = document.createElement('div');
+          emptyMsg.style.color = 'var(--gray-medium)';
+          emptyMsg.textContent = 'No 20-minute slots in this window.';
+          grid.appendChild(emptyMsg);
+        } else {
+          chips.forEach(function(ch){
+            var chipEl = document.createElement('div');
+            chipEl.className = 'slot-chip';
+            chipEl.setAttribute('role','button');
+            chipEl.setAttribute('tabindex','0');
+            chipEl.textContent = ch.label;
+            chipEl.addEventListener('click', function(){
+              // remove current selection
+              var allChips = document.querySelectorAll('.slot-chip');
+              for (var k=0;k<allChips.length;k++) allChips[k].classList.remove('selected');
+              // select this
+              chipEl.classList.add('selected');
+              // set global selectedSlot
+              selectedSlot = {
+                date: s.date,
+                dateStr: s.dateStr,
+                start: { hour: ch.start.hour, minute: ch.start.minute },
+                end:   { hour: ch.end.hour,   minute: ch.end.minute },
+                display: ch.label
+              };
+            });
+            chipEl.addEventListener('keydown', function(ev){
+              if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                chipEl.click();
+              }
+            });
+            grid.appendChild(chipEl);
+          });
+        }
+
+        card.appendChild(header);
+        card.appendChild(sub);
+        card.appendChild(grid);
+        container.appendChild(card);
       }
     }
 
-    function generateTimeOptions(startHour, endHour){ var out=[]; for(var h=startHour; h<=endHour; h++){ for(var m=0;m<60;m+=30){ if(h===endHour && m>0) break; var disp=h>12?h-12:(h===0?12:h); var ap=h>=12?'PM':'AM'; out.push({display: disp+':'+p2(m)+' '+ap, hour:h, minute:m}); } } return out; }
-
-    function selectTimeSlot(slot, index){
-      var cards=document.querySelectorAll('.time-slot'); for(var i=0;i<cards.length;i++) cards[i].classList.remove('selected');
-      var chosen=document.querySelector('[data-slot-index="'+index+'"];');
-      if(!chosen){ chosen=document.querySelector('[data-slot-index="'+index+'"]'); }
-      if(chosen) chosen.classList.add('selected');
-      selectedSlot=slot; selectedDate=slot.date; document.getElementById('timePickerSection').classList.remove('hidden');
-      var start=convertTo24Hour(slot.startTimeStr), end=convertTo24Hour(slot.endTimeStr), lastStart=end.hours-2;
-      var startSel=document.getElementById('startTime'); startSel.innerHTML='<option value="">Select start time</option>';
-      var opts=generateTimeOptions(start.hours, lastStart);
-      for(var j=0;j<opts.length;j++){ var o=opts[j]; var op=document.createElement('option'); op.value=JSON.stringify(o); op.textContent=o.display; startSel.appendChild(op);} 
-      document.getElementById('endTime').innerHTML='<option value="">Select end time</option>';
+    function humanTimeDisplay(date, start, end){
+      var mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      function t12fmt(h,m){
+        var ap=h>=12?'pm':'am';
+        var hh=h%12===0?12:h%12;
+        return hh+(m?':'+p2(m):'')+ap;
+      }
+      return date.getDate()+' '+mons[date.getMonth()]+' '+date.getFullYear()+', '+t12fmt(start.hour,start.minute)+'–'+t12fmt(end.hour,end.minute);
     }
 
-    function updateEndTimeOptions(){ var s=document.getElementById('startTime').value; var endSel=document.getElementById('endTime'); if(!s){ endSel.innerHTML='<option value="">Select end time</option>'; return; } var st=JSON.parse(s); var eh=st.hour+2, em=st.minute; var disp= (eh>12?eh-12:(eh===0?12:eh))+':'+p2(em)+' '+(eh>=12?'PM':'AM'); endSel.innerHTML=''; var op=document.createElement('option'); op.value=JSON.stringify({hour:eh,minute:em,display:disp}); op.textContent=disp; op.selected=true; endSel.appendChild(op); }
+    function validateForm(){
+      hideMessages();
 
-    function validateForm(){ hideMessages(); if(!selectedSlot){ showError('Please select an appointment date'); return false; } if(!document.getElementById('startTime').value || !document.getElementById('endTime').value){ showError('Please select your preferred appointment times'); return false; } var appt=document.querySelector('input[name="appointmentType"]:checked'); if(!appt){ showError('Please select an appointment type'); return false; } if(appt.value==='inperson'){ if(!document.getElementById('address').value.trim()){ showError('Please provide the service address for in-person visit'); return false; } if(!document.getElementById('arrivalWindow').checked){ showError('Please acknowledge the 10-15 minute arrival window'); return false; } } if(!document.getElementById('consent').checked){ showError('Please consent to receive appointment reminders'); return false; } if(!document.getElementById('emergency').checked){ showError('Please confirm you are not experiencing an emergency'); return false; } var email=document.getElementById('email').value.trim(); if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ showError('Please enter a valid email address'); return false; } return true; }
+      // require a slot chip selection
+      if(!selectedSlot){
+        showError('Please choose a 20-minute appointment time.');
+        return false;
+      }
+
+      var appt = document.querySelector('input[name="appointmentType"]:checked');
+      if(!appt){ showError('Please select an appointment type'); return false; }
+
+      if(appt.value==='inperson'){
+        if(!document.getElementById('address').value.trim()){
+          showError('Please provide the service address for in-person visit');
+          return false;
+        }
+        if(!document.getElementById('arrivalWindow').checked){
+          showError('Please acknowledge the 10-15 minute arrival window');
+          return false;
+        }
+      }
+
+      var email=document.getElementById('email').value.trim();
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+        showError('Please enter a valid email address');
+        return false;
+      }
+
+      if(!document.getElementById('consent').checked){
+        showError('Please consent to receive appointment reminders');
+        return false;
+      }
+      if(!document.getElementById('emergency').checked){
+        showError('Please confirm you are not experiencing an emergency');
+        return false;
+      }
+
+      return true;
+    }
 
     async function handleSubmit(e){
-      e.preventDefault(); if(!validateForm()) return;
-      var btn=document.getElementById('submitBtn'), spin=document.getElementById('submitSpinner'); btn.disabled=true; spin.classList.remove('hidden');
+      e.preventDefault();
+      if(!validateForm()) return;
+
+      var btn=document.getElementById('submitBtn'), spin=document.getElementById('submitSpinner');
+      btn.disabled=true; spin.classList.remove('hidden');
+
       try{
         var form=new FormData(e.target);
-        var first=String(form.get('firstName')||'').trim(), last=String(form.get('lastName')||'').trim(), email=String(form.get('email')||'').trim(), phone=String(form.get('phone')||'').trim();
-        var apptType=String(form.get('appointmentType')||'').trim();
-        var st=JSON.parse(document.getElementById('startTime').value), et=JSON.parse(document.getElementById('endTime').value);
-        var startDT=formatDateTimeForAPI(selectedDate, st.hour, st.minute), endDT=formatDateTimeForAPI(selectedDate, et.hour, et.minute);
+        var first=String(form.get('firstName')||'').trim(),
+            last =String(form.get('lastName')||'').trim(),
+            email=String(form.get('email')||'').trim(),
+            phone=String(form.get('phone')||'').trim(),
+            apptType=String(form.get('appointmentType')||'').trim();
+
+        // Use the chosen 20-min chip
+        var st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
+        var et = { hour: selectedSlot.end.hour,   minute: selectedSlot.end.minute   };
+
+        var startDT = formatDateTimeForAPI(selectedSlot.date, st.hour, st.minute);
+        var endDT   = formatDateTimeForAPI(selectedSlot.date, et.hour, et.minute);
+
         var subject=(apptType==='telehealth'?'Telehealth':'In-person')+' appointment';
-        var body='Appointment scheduled for '+apptType+' with '+first+' on '+humanTimeDisplay(selectedDate, st, et)+'. Contact: '+phone+'.';
+        var body='Appointment scheduled for '+apptType+' with '+first+' on '+humanTimeDisplay(selectedSlot.date, st, et)+'. Contact: '+phone+'.';
+
         if(apptType==='inperson'){
-          var addr=String(form.get('address')||''), unit=String(form.get('unit')||''), entry=String(form.get('entryNotes')||''), park=String(form.get('parking')||''), safety=String(form.get('safetyConsiderations')||'');
+          var addr=String(form.get('address')||''),
+              unit=String(form.get('unit')||''),
+              entry=String(form.get('entryNotes')||''),
+              park =String(form.get('parking')||''),
+              safety=String(form.get('safetyConsiderations')||'');
           var ack=document.getElementById('arrivalWindow').checked?'Yes':'No';
-          body += ' Address: '+addr+(unit?(', '+unit):'')+'.'; if(entry) body+=' Entry notes: '+entry+'.'; if(park) body+=' Parking: '+park+'.'; if(safety) body+=' Safety considerations: '+safety+'.'; body+=' Arrival window acknowledged: '+ack+'.';
+          body += ' Address: '+addr+(unit?(', '+unit):'')+'.';
+          if(entry) body+=' Entry notes: '+entry+'.';
+          if(park)  body+=' Parking: '+park+'.';
+          if(safety)body+=' Safety considerations: '+safety+'.';
+          body+=' Arrival window acknowledged: '+ack+'.';
         }
-        var alt=String(form.get('alternateAvailability')||''), notes=String(form.get('additionalNotes')||''); if(alt) body+=' Alternate availability: '+alt+'.'; if(notes) body+=' Additional notes: '+notes+'.';
-        var payload={ start:startDT, end:endDT, subject:subject, body:body, timeZone:CONFIG.TIMEZONE, location:{ displayName: apptType==='telehealth'?'video':'in-person' }, attendees:[{ address: email, name: first+' '+last, type:'required' }], allowNewTimeProposals:true, transactionId: generateUUID() };
+
+        var alt=String(form.get('alternateAvailability')||''),
+            notes=String(form.get('additionalNotes')||'');
+        if(alt)  body+=' Alternate availability: '+alt+'.';
+        if(notes)body+=' Additional notes: '+notes+'.';
+
+        var payload={
+          start:startDT,
+          end:endDT,
+          subject:subject,
+          body:body,
+          timeZone:CONFIG.TIMEZONE,
+          location:{ displayName: apptType==='telehealth'?'video':'in-person' },
+          attendees:[{ address: email, name: first+' '+last, type:'required' }],
+          allowNewTimeProposals:true,
+          transactionId: generateUUID()
+        };
+
         var url=withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY);
-        var resp=await fetch(url,{ method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(payload) });
-        if(!resp.ok){ var t=''; try{ t=await resp.text(); }catch(_){} throw new Error('Failed to book ('+resp.status+') '+t); }
-        showSuccess(); setTimeout(clearForm, 1500);
-      }catch(err){ console.error(err); showError('There was an error booking your appointment. Please try again or call us directly.'); }
-      finally{ btn.disabled=false; spin.classList.add('hidden'); }
+        var resp=await fetch(url,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Accept':'application/json'},
+          body: JSON.stringify(payload)
+        });
+
+        if(!resp.ok){
+          var t=''; try{ t=await resp.text(); }catch(_){}
+          throw new Error('Failed to book ('+resp.status+') '+t);
+        }
+
+        showSuccess();
+        setTimeout(clearForm, 1500);
+      }catch(err){
+        console.error(err);
+        showError('There was an error booking your appointment. Please try again or call us directly.');
+      }
+      finally{
+        btn.disabled=false; spin.classList.add('hidden');
+      }
     }
 
-    function clearForm(){ document.getElementById('bookingForm').reset(); document.getElementById('inPersonDetails').classList.add('hidden'); document.getElementById('timePickerSection').classList.add('hidden'); document.getElementById('timeSlots').innerHTML=''; var cards=document.querySelectorAll('.radio-option'); for(var i=0;i<cards.length;i++) cards[i].classList.remove('selected'); selectedSlot=null; selectedDate=null; hideMessages(); }
+    function clearForm(){
+      document.getElementById('bookingForm').reset();
+      document.getElementById('inPersonDetails').classList.add('hidden');
+      document.getElementById('timePickerSection').classList.add('hidden');
+      document.getElementById('timeSlots').innerHTML='';
+      // clear selection
+      selectedSlot=null;
+      hideMessages();
+      // clear any chip highlights (in case)
+      var allChips = document.querySelectorAll('.slot-chip');
+      for (var k=0;k<allChips.length;k++) allChips[k].classList.remove('selected');
+      // clear selected radio styles
+      var cards=document.querySelectorAll('.radio-option');
+      for(var i=0;i<cards.length;i++) cards[i].classList.remove('selected');
+    }
+
     function showSuccess(){ hideMessages(); var el=document.getElementById('successMessage'); el.style.display='block'; setTimeout(function(){ el.style.display='none'; }, 5000); }
     function showError(msg){ hideMessages(); var el=document.getElementById('errorMessage'); el.textContent=msg; el.style.display='block'; setTimeout(function(){ el.style.display='none'; }, 6000); }
     function hideMessages(){ document.getElementById('successMessage').style.display='none'; document.getElementById('errorMessage').style.display='none'; }
