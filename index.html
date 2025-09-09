@@ -409,79 +409,77 @@
       return chips;
     }
 
-    function displayAvailableSlots(slots){
-      var container = document.getElementById('timeSlots');
-      container.innerHTML='';
+      function displayAvailableSlots(slots){
+    const container = document.getElementById('timeSlots');
+    container.innerHTML='';
 
-      if(!slots||!slots.length){
-        container.innerHTML='<p>No available slots returned by the server. Please check back later.</p>';
-        return;
-      }
-
-      selectedSlot = null;
-
-      for(var i=0;i<slots.length;i++){
-        var s = slots[i];
-        var card = document.createElement('div');
-        card.className = 'time-slot';
-
-        var dow = dowForYMD(s.y, s.m, s.d);
-        var header = document.createElement('div');
-        header.className = 'date';
-        header.textContent = dow + ' ' + s.dateStr;
-
-        var sub = document.createElement('div');
-        sub.className = 'range';
-        sub.textContent = s.startTimeStr + ' - ' + s.endTimeStr;
-
-        var grid = document.createElement('div');
-        grid.className = 'slot-grid';
-
-        var chips = splitIntoTwentyMinuteChips(s);
-        if (chips.length === 0) {
-          var emptyMsg = document.createElement('div');
-          emptyMsg.style.color = 'var(--gray-medium)';
-          emptyMsg.textContent = 'No 20-minute slots in this window.';
-          grid.appendChild(emptyMsg);
-        } else {
-          chips.forEach(function(ch){
-            var chipEl = document.createElement('div');
-            chipEl.className = 'slot-chip';
-            chipEl.setAttribute('role','button');
-            chipEl.setAttribute('tabindex','0');
-            chipEl.textContent = ch.label;
-            chipEl.addEventListener('click', function(){
-              // remove current selection
-              var allChips = document.querySelectorAll('.slot-chip');
-              for (var k=0;k<allChips.length;k++) allChips[k].classList.remove('selected');
-              // select this
-              chipEl.classList.add('selected');
-              // set global selectedSlot with Y/M/D carried explicitly
-              selectedSlot = {
-                y: s.y, m: s.m, d: s.d,
-                dateStr: s.dateStr,
-                start: { hour: ch.start.hour, minute: ch.start.minute },
-                end:   { hour: ch.end.hour,   minute: ch.end.minute },
-                display: ch.label
-              };
-            });
-            chipEl.addEventListener('keydown', function(ev){
-              if (ev.key === 'Enter' || ev.key === ' ') {
-                ev.preventDefault();
-                chipEl.click();
-              }
-            });
-            grid.appendChild(chipEl);
-          });
-        }
-
-        card.appendChild(header);
-        card.appendChild(sub);
-        card.appendChild(grid);
-        container.appendChild(card);
-      }
+    if(!slots || !slots.length){
+      container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
+      return;
     }
 
+    selectedSlot = null;
+
+    for (let i = 0; i < slots.length; i++) {         // <-- let (per-iteration)
+      const s = slots[i];                             // <-- const (captures correct date)
+
+      const card = document.createElement('div');
+      card.className = 'time-slot';
+
+      const header = document.createElement('div');
+      header.className = 'date';
+      header.textContent = `${dowForYMD(s.y, s.m, s.d)} ${s.dateStr}`;
+
+      const sub = document.createElement('div');
+      sub.className = 'range';
+      sub.textContent = `${s.startTimeStr} - ${s.endTimeStr}`;
+
+      const grid = document.createElement('div');
+      grid.className = 'slot-grid';
+
+      const chips = splitIntoTwentyMinuteChips(s);
+      if (chips.length === 0) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.color = 'var(--gray-medium)';
+        emptyMsg.textContent = 'No 20-minute slots in this window.';
+        grid.appendChild(emptyMsg);
+      } else {
+        chips.forEach((ch) => {
+          const chipEl = document.createElement('div');  // <-- const (per-chip)
+          chipEl.className = 'slot-chip';
+          chipEl.setAttribute('role','button');
+          chipEl.setAttribute('tabindex','0');
+          chipEl.textContent = ch.label;
+
+          chipEl.addEventListener('click', () => {
+            document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
+            chipEl.classList.add('selected');
+
+            selectedSlot = {
+              y: s.y, m: s.m, d: s.d,
+              dateStr: s.dateStr,
+              start: { hour: ch.start.hour, minute: ch.start.minute },
+              end:   { hour: ch.end.hour,   minute: ch.end.minute },
+              display: ch.label
+            };
+
+            console.log('[SELECTED]', selectedSlot); // should show the exact day you clicked
+          });
+
+          chipEl.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); chipEl.click(); }
+          });
+
+          grid.appendChild(chipEl);
+        });
+      }
+
+      card.appendChild(header);
+      card.appendChild(sub);
+      card.appendChild(grid);
+      container.appendChild(card);
+    }
+  }
     function humanTimeDisplayYMD(y,m,d,start,end){
       var mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       function p2(n){return (n<10?'0':'')+n;}
