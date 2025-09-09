@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Still Waters Counseling - Book Your Appointment</title>
-  <!-- Single-file build | v2025-09-06_20min-slots -->
+  <!-- Single-file build | v2025-09-06_20min-slots | patched to preserve CT date -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -70,13 +70,11 @@
     .checkbox-group input[type="checkbox"] { margin-right: 10px; margin-top: 5px; width: 20px; height: 20px; cursor: pointer; }
     .checkbox-group label { cursor: pointer; margin-bottom: 0; flex: 1; }
 
-    /* Cards for each day-range */
     .time-slots { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; }
     .time-slot { padding: 15px; border: 2px solid var(--gray-light); border-radius: 12px; background: var(--white); box-shadow: var(--shadow); }
     .time-slot .date { font-weight: 700; font-size: 1rem; margin-bottom: 10px; color: var(--gray-dark); }
     .time-slot .range { font-size: 0.9rem; color: var(--gray-medium); margin-bottom: 10px; }
 
-    /* Grid of 20-min chips */
     .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
     .slot-chip { user-select: none; text-align: center; padding: 10px 12px; border: 2px solid var(--gray-light); border-radius: 9999px; background: var(--white); font-size: 0.95rem; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease, color .15s ease; }
     .slot-chip:hover { transform: translateY(-1px); border-color: var(--secondary-color); box-shadow: var(--shadow); }
@@ -96,7 +94,6 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .success-message { background: var(--success-color); color: var(--white); padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; display: none; animation: slideDown 0.5s ease-out; }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-20px);} to { opacity: 1; transform: translateY(0);} }
     .error-message { background: var(--danger-color); color: var(--white); padding: 15px; border-radius: 10px; text-align: center; margin: 20px 0; display: none; }
 
     @media (max-width: 768px) {
@@ -208,7 +205,6 @@
           <button type="button" class="btn btn-secondary" id="loadSlotsBtn">Load Available Times</button>
         </div>
         <div id="timeSlots" class="time-slots"></div>
-        <!-- Legacy 2-hour picker kept hidden (not used anymore) -->
         <div id="timePickerSection" class="form-group hidden"></div>
       </div>
 
@@ -258,9 +254,10 @@
     var CONFIG = {
       GET_SLOTS_URL: 'https://sw-function-b6c4h9cnexhbh4g3.canadacentral-01.azurewebsites.net/api/Calender',
       BOOK_APPOINTMENT_URL: 'https://sw-function-b6c4h9cnexhbh4g3.canadacentral-01.azurewebsites.net/api/CreateEvent',
-      GET_SLOTS_KEY: '',           // leave blank for Anonymous
-      BOOK_APPOINTMENT_KEY: '',    // put CreateEvent key here if protected
-      TIMEZONE: 'Pacific Standard Time',
+      GET_SLOTS_KEY: '',
+      BOOK_APPOINTMENT_KEY: '',
+      // IMPORTANT: we book in Central Time (Texas)
+      TIMEZONE: 'Central Standard Time',
       SLOT_MINUTES: 20
     };
 
@@ -271,8 +268,9 @@
     }
 
     // Global selection
-    var selectedSlot = null; // { date: Date, start:{hour,minute}, end:{hour,minute}, display:string }
-    var availableSlots = []; // parsed day-ranges
+    // Selected slot now carries y/m/d numbers to avoid JS Date timezone shifts
+    var selectedSlot = null; // { y, m, d, start:{hour,minute}, end:{hour,minute}, display, dateStr }
+    var availableSlots = [];
 
     document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('bookingForm').addEventListener('submit', handleSubmit);
@@ -315,15 +313,24 @@
     }
 
     function parseSlotString(slotStr){
+      // slotStr like: "09 Sep 2025, 9:00 AM - 5:00 PM"
       var parts = slotStr.split(', ');
-      var datePart = parts[0]; // e.g. "05 Sep 2025"
-      var timePart = parts[1]; // e.g. "09:00 AM - 02:00 PM"
+      var datePart = parts[0];
+      var timePart = parts[1];
       var dt = datePart.split(' ');
-      var day = parseInt(dt[0],10); var mon = dt[1]; var year = parseInt(dt[2],10);
-      var monthMap = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+      var day = parseInt(dt[0],10), mon = dt[1], year = parseInt(dt[2],10);
+      var monthMap = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+      var monthNum = monthMap[mon];
       var range = timePart.split(' - ');
-      var startTimeStr = range[0]; var endTimeStr = range[1];
-      return { date: new Date(year, monthMap[mon], day), dateStr: datePart, startTimeStr: startTimeStr, endTimeStr: endTimeStr, originalString: slotStr };
+      return {
+        // keep a Date only for local display if needed
+        date: new Date(year, monthNum-1, day),
+        y: year, m: monthNum, d: day,
+        dateStr: datePart,
+        startTimeStr: range[0],
+        endTimeStr: range[1],
+        originalString: slotStr
+      };
     }
 
     function convertTo24Hour(timeStr){
@@ -334,16 +341,19 @@
       return {hours:h, minutes:m};
     }
     function p2(n){return (n<10?'0':'')+n;}
-    function formatDateTimeForAPI(date,hour,minute){
-      return date.getFullYear()+'-'+p2(date.getMonth()+1)+'-'+p2(date.getDate())+'T'+p2(hour)+':'+p2(minute)+':00';
+
+    // Build "YYYY-MM-DDTHH:MM:SS" from raw numbers (no JS Date math)
+    function ymdhms(y,m,d,h,mi){ return y+'-'+p2(m)+'-'+p2(d)+'T'+p2(h)+':'+p2(mi)+':00'; }
+
+    // Day-of-week from Y-M-D with UTC to avoid local tz skew
+    function dowForYMD(y,m,d){
+      var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      var idx = new Date(Date.UTC(y, m-1, d)).getUTCDay();
+      return days[idx];
     }
 
-    function t12(h,m){
-      var ap = h>=12 ? 'PM' : 'AM';
-      var hh = h%12===0 ? 12 : h%12;
-      return hh+':'+p2(m)+' '+ap;
-    }
     function t12rangeLabel(sH,sM,eH,eM){
+      function p2(n){return (n<10?'0':'')+n;}
       var sAP = sH>=12?'PM':'AM';
       var eAP = eH>=12?'PM':'AM';
       var sHH = sH%12===0?12:sH%12;
@@ -408,17 +418,14 @@
         return;
       }
 
-      // Clear any previous selection
       selectedSlot = null;
 
-      // Build a card per returned window, each containing 20-min chips
-      var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       for(var i=0;i<slots.length;i++){
         var s = slots[i];
         var card = document.createElement('div');
         card.className = 'time-slot';
 
-        var dow = days[s.date.getDay()];
+        var dow = dowForYMD(s.y, s.m, s.d);
         var header = document.createElement('div');
         header.className = 'date';
         header.textContent = dow + ' ' + s.dateStr;
@@ -449,9 +456,9 @@
               for (var k=0;k<allChips.length;k++) allChips[k].classList.remove('selected');
               // select this
               chipEl.classList.add('selected');
-              // set global selectedSlot
+              // set global selectedSlot with Y/M/D carried explicitly
               selectedSlot = {
-                date: s.date,
+                y: s.y, m: s.m, d: s.d,
                 dateStr: s.dateStr,
                 start: { hour: ch.start.hour, minute: ch.start.minute },
                 end:   { hour: ch.end.hour,   minute: ch.end.minute },
@@ -475,20 +482,20 @@
       }
     }
 
-    function humanTimeDisplay(date, start, end){
+    function humanTimeDisplayYMD(y,m,d,start,end){
       var mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      function t12fmt(h,m){
+      function p2(n){return (n<10?'0':'')+n;}
+      function t12fmt(h,mn){
         var ap=h>=12?'pm':'am';
         var hh=h%12===0?12:h%12;
-        return hh+(m?':'+p2(m):'')+ap;
+        return hh+(mn?':'+p2(mn):'')+ap;
       }
-      return date.getDate()+' '+mons[date.getMonth()]+' '+date.getFullYear()+', '+t12fmt(start.hour,start.minute)+'–'+t12fmt(end.hour,end.minute);
+      return d+' '+mons[m-1]+' '+y+', '+t12fmt(start.hour,start.minute)+'–'+t12fmt(end.hour,end.minute);
     }
 
     function validateForm(){
       hideMessages();
 
-      // require a slot chip selection
       if(!selectedSlot){
         showError('Please choose a 20-minute appointment time.');
         return false;
@@ -541,15 +548,17 @@
             phone=String(form.get('phone')||'').trim(),
             apptType=String(form.get('appointmentType')||'').trim();
 
-        // Use the chosen 20-min chip
         var st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
         var et = { hour: selectedSlot.end.hour,   minute: selectedSlot.end.minute   };
 
-        var startDT = formatDateTimeForAPI(selectedSlot.date, st.hour, st.minute);
-        var endDT   = formatDateTimeForAPI(selectedSlot.date, et.hour, et.minute);
+        // Build dateTime strings directly from numbers (no JS Date timezone math)
+        var startDT = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, st.hour, st.minute);
+        var endDT   = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, et.hour, et.minute);
 
         var subject=(apptType==='telehealth'?'Telehealth':'In-person')+' appointment';
-        var body='Appointment scheduled for '+apptType+' with '+first+' on '+humanTimeDisplay(selectedSlot.date, st, et)+'. Contact: '+phone+'.';
+        var body='Appointment scheduled for '+apptType+' with '+first+' on '
+               + humanTimeDisplayYMD(selectedSlot.y, selectedSlot.m, selectedSlot.d, st, et)
+               + '. Contact: '+phone+'.';
 
         if(apptType==='inperson'){
           var addr=String(form.get('address')||''),
@@ -571,16 +580,19 @@
         if(notes)body+=' Additional notes: '+notes+'.';
 
         var payload={
-          start:startDT,
-          end:endDT,
-          subject:subject,
-          body:body,
-          timeZone:CONFIG.TIMEZONE,
+          subject: subject,
+          body: body,
+          // Send per-field timeZone (Central) so the server books the intended wall time
+          start: { dateTime: startDT, timeZone: CONFIG.TIMEZONE },
+          end:   { dateTime: endDT,   timeZone: CONFIG.TIMEZONE },
+          expectedDate: selectedSlot.y + '-' + p2(selectedSlot.m) + '-' + p2(selectedSlot.d), // server-side sanity check
           location:{ displayName: apptType==='telehealth'?'video':'in-person' },
           attendees:[{ address: email, name: first+' '+last, type:'required' }],
           allowNewTimeProposals:true,
           transactionId: generateUUID()
         };
+
+        console.log('[BOOK payload]', payload);
 
         var url=withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY);
         var resp=await fetch(url,{
@@ -610,13 +622,10 @@
       document.getElementById('inPersonDetails').classList.add('hidden');
       document.getElementById('timePickerSection').classList.add('hidden');
       document.getElementById('timeSlots').innerHTML='';
-      // clear selection
       selectedSlot=null;
       hideMessages();
-      // clear any chip highlights (in case)
       var allChips = document.querySelectorAll('.slot-chip');
       for (var k=0;k<allChips.length;k++) allChips[k].classList.remove('selected');
-      // clear selected radio styles
       var cards=document.querySelectorAll('.radio-option');
       for(var i=0;i<cards.length;i++) cards[i].classList.remove('selected');
     }
