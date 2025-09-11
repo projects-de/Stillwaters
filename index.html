@@ -153,6 +153,48 @@
       </div>
 
       <div class="form-section">
+  <h2>Age Verification</h2>
+  <div class="form-row">
+    <div class="form-group">
+      <label for="dob">Date of Birth <span class="required">*</span></label>
+      <input type="date" id="dob" name="dob" required />
+    </div>
+    <div class="form-group">
+      <label>Is the person receiving services over 18? <span class="required">*</span></label>
+      <div class="radio-group">
+        <div class="radio-option" data-over18="yes">
+          <input type="radio" id="over18Yes" name="over18" value="yes" required />
+          <label for="over18Yes">Yes</label>
+        </div>
+        <div class="radio-option" data-over18="no">
+          <input type="radio" id="over18No" name="over18" value="no" required />
+          <label for="over18No">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+        <div id="guardianInfo" class="form-section hidden">
+  <h2>Guardian Information</h2>
+  <div class="form-row">
+    <div class="form-group">
+      <label for="guardianName">Guardian Name <span class="required">*</span></label>
+      <input type="text" id="guardianName" name="guardianName" />
+    </div>
+    <div class="form-group">
+      <label for="guardianPhone">Guardian Phone <span class="required">*</span></label>
+      <input type="tel" id="guardianPhone" name="guardianPhone" placeholder="123-456-7890" />
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="guardianEmail">Guardian Email <span class="required">*</span></label>
+    <input type="email" id="guardianEmail" name="guardianEmail" />
+  </div>
+</div>
+
+
+      <div class="form-section">
         <h2>Appointment Type</h2>
         <div class="form-group">
           <label>Select your preferred appointment type <span class="required">*</span></label>
@@ -273,6 +315,25 @@
     var availableSlots = [];
 
     document.addEventListener('DOMContentLoaded', function () {
+
+      // Handle Over 18 selection
+document.querySelectorAll('input[name="over18"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    const guardianSection = document.getElementById('guardianInfo');
+    if (this.value === 'no') {
+      guardianSection.classList.remove('hidden');
+      document.getElementById('guardianName').required = true;
+      document.getElementById('guardianPhone').required = true;
+      document.getElementById('guardianEmail').required = true;
+    } else {
+      guardianSection.classList.add('hidden');
+      document.getElementById('guardianName').required = false;
+      document.getElementById('guardianPhone').required = false;
+      document.getElementById('guardianEmail').required = false;
+    }
+  });
+});
+
       document.getElementById('bookingForm').addEventListener('submit', handleSubmit);
       document.getElementById('loadSlotsBtn').addEventListener('click', loadAvailableSlots);
       document.getElementById('clearFormBtn').addEventListener('click', clearForm);
@@ -518,6 +579,23 @@
         showError('Please enter a valid email address');
         return false;
       }
+       
+         var dob = new Date(document.getElementById('dob').value);
+  if (isNaN(dob)) {
+    showError('Please enter a valid Date of Birth');
+    return false;
+  }
+  var today = new Date();
+  var age = today.getFullYear() - dob.getFullYear();
+  var m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  var over18Choice = document.querySelector('input[name="over18"]:checked').value;
+  if ((age >= 18 && over18Choice === 'no') || (age < 18 && over18Choice === 'yes')) {
+    showError('The DOB and Over-18 selection do not match.');
+    return false;
+  }
 
       if(!document.getElementById('consent').checked){
         showError('Please consent to receive appointment reminders');
@@ -527,6 +605,8 @@
         showError('Please confirm you are not experiencing an emergency');
         return false;
       }
+       
+      
 
       return true;
     }
@@ -545,6 +625,11 @@
             email=String(form.get('email')||'').trim(),
             phone=String(form.get('phone')||'').trim(),
             apptType=String(form.get('appointmentType')||'').trim();
+        var dob = String(form.get('dob') || '').trim();
+var over18Choice = String(form.get('over18') || '').trim();
+var guardianName = String(form.get('guardianName') || '').trim();
+var guardianPhone = String(form.get('guardianPhone') || '').trim();
+var guardianEmail = String(form.get('guardianEmail') || '').trim();
 
         var st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
         var et = { hour: selectedSlot.end.hour,   minute: selectedSlot.end.minute   };
@@ -576,6 +661,15 @@
             notes=String(form.get('additionalNotes')||'');
         if(alt)  body+=' Alternate availability: '+alt+'.';
         if(notes)body+=' Additional notes: '+notes+'.';
+        
+        body += ' Date of Birth: ' + dob + '.';
+        body += ' Over 18: ' + (over18Choice === 'yes' ? 'Yes' : 'No') + '.';
+
+        if (over18Choice === 'no') {
+  body += ' Guardian: ' + guardianName +
+          ' (Phone: ' + guardianPhone +
+          ', Email: ' + guardianEmail + ').';
+}
 
         var payload={
           subject: subject,
@@ -587,7 +681,14 @@
           location:{ displayName: apptType==='telehealth'?'video':'in-person' },
           attendees:[{ address: email, name: first+' '+last, type:'required' }],
           allowNewTimeProposals:true,
-          transactionId: generateUUID()
+          transactionId: generateUUID(),
+          dob: dob,
+         over18: over18Choice,
+         guardian: over18Choice === 'no' ? {
+        name: guardianName,
+       phone: guardianPhone,
+       email: guardianEmail
+  } : null
         };
 
         console.log('[BOOK payload]', payload);
