@@ -338,10 +338,14 @@ document.querySelectorAll('input[name="over18"]').forEach(radio => {
       document.getElementById('loadSlotsBtn').addEventListener('click', loadAvailableSlots);
       document.getElementById('clearFormBtn').addEventListener('click', clearForm);
 
-      var typeCards = document.querySelectorAll('.radio-option');
-      for (var i=0;i<typeCards.length;i++) {
-        typeCards[i].addEventListener('click', function(){ selectAppointmentType(this.getAttribute('data-type')); });
-      }
+      // Bind only the Appointment Type cards (those that have data-type)
+var typeCards = document.querySelectorAll('.radio-option[data-type]');
+typeCards.forEach(function(card){
+  card.addEventListener('click', function(){
+    selectAppointmentType(this.getAttribute('data-type'));
+  });
+});
+
 
       document.getElementById('phone').addEventListener('input', function (e) {
         var v = e.target.value.replace(/\D/g,'').slice(0,10);
@@ -354,24 +358,25 @@ document.querySelectorAll('input[name="over18"]').forEach(radio => {
     function generateUUID(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){ var r=Math.random()*16|0, v=c==='x'?r:(r&0x3)|0x8; return v.toString(16).toUpperCase(); }); }
 
     function selectAppointmentType(type){
-      var radio = document.getElementById(type==='telehealth'?'telehealth':'inperson');
-      if (radio) radio.checked = true;
-      var cards = document.querySelectorAll('.radio-option');
-      for (var i=0;i<cards.length;i++) cards[i].classList.remove('selected');
-      var chosen = document.querySelector('.radio-option[data-type="'+type+'"]');
-      if (chosen) chosen.classList.add('selected');
+  var radio = document.getElementById(type === 'telehealth' ? 'telehealth' : 'inperson');
+  if (radio) radio.checked = true;
 
-      var inPerson = document.getElementById('inPersonDetails');
-      if (type==='inperson'){
-        inPerson.classList.remove('hidden');
-        document.getElementById('address').required=true;
-        document.getElementById('arrivalWindow').required=true;
-      } else {
-        inPerson.classList.add('hidden');
-        document.getElementById('address').required=false;
-        document.getElementById('arrivalWindow').required=false;
-      }
-    }
+  // Card styling
+  var cards = document.querySelectorAll('.radio-option');
+  for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
+  var chosen = document.querySelector('.radio-option[data-type="' + type + '"]');
+  if (chosen) chosen.classList.add('selected');
+
+  // In-person behaves like Telehealth — never show/require extra fields
+  var inPerson = document.getElementById('inPersonDetails');
+  if (inPerson) inPerson.classList.add('hidden');
+
+  var addr = document.getElementById('address');
+  var arrival = document.getElementById('arrivalWindow');
+  if (addr) addr.required = false;
+  if (arrival) arrival.required = false;
+}
+
 
     function parseSlotString(slotStr){
       // slotStr like: "09 Sep 2025, 9:00 AM - 5:00 PM"
@@ -563,16 +568,7 @@ document.querySelectorAll('input[name="over18"]').forEach(radio => {
       var appt = document.querySelector('input[name="appointmentType"]:checked');
       if(!appt){ showError('Please select an appointment type'); return false; }
 
-      if(appt.value==='inperson'){
-        if(!document.getElementById('address').value.trim()){
-          showError('Please provide the service address for in-person visit');
-          return false;
-        }
-        if(!document.getElementById('arrivalWindow').checked){
-          showError('Please acknowledge the 10-15 minute arrival window');
-          return false;
-        }
-      }
+      
 
       var email=document.getElementById('email').value.trim();
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
@@ -643,19 +639,7 @@ var guardianEmail = String(form.get('guardianEmail') || '').trim();
                + humanTimeDisplayYMD(selectedSlot.y, selectedSlot.m, selectedSlot.d, st, et)
                + '. Contact: '+phone+'.';
 
-        if(apptType==='inperson'){
-          var addr=String(form.get('address')||''),
-              unit=String(form.get('unit')||''),
-              entry=String(form.get('entryNotes')||''),
-              park =String(form.get('parking')||''),
-              safety=String(form.get('safetyConsiderations')||'');
-          var ack=document.getElementById('arrivalWindow').checked?'Yes':'No';
-          body += ' Address: '+addr+(unit?(', '+unit):'')+'.';
-          if(entry) body+=' Entry notes: '+entry+'.';
-          if(park)  body+=' Parking: '+park+'.';
-          if(safety)body+=' Safety considerations: '+safety+'.';
-          body+=' Arrival window acknowledged: '+ack+'.';
-        }
+        
 
         var alt=String(form.get('alternateAvailability')||''),
             notes=String(form.get('additionalNotes')||'');
