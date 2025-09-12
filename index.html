@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Still Waters Counseling - Book Your Appointment</title>
-  <!-- Single-file build | v2025-09-06_20min-slots | patched to preserve CT date -->
+  <!-- Single-file build | v2025-09-12_siblings-fixed | 3-hour blocks for households -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -96,6 +96,13 @@
     .success-message { background: var(--success-color); color: var(--white); padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; display: none; animation: slideDown 0.5s ease-out; }
     .error-message { background: var(--danger-color); color: var(--white); padding: 15px; border-radius: 10px; text-align: center; margin: 20px 0; display: none; }
 
+    .sibling-card { border:2px solid var(--gray-light); border-radius:12px; padding:15px; margin-bottom:12px; background:var(--light-bg); }
+    .sibling-row { display:grid; grid-template-columns: 1.5fr 0.8fr 1fr; gap:12px; }
+    .sibling-guardian { margin-top:10px; padding:10px; border-radius:10px; background:#fff; border:1px dashed var(--gray-light); }
+    .sibling-remove { margin-top:10px; }
+    .hint { color: var(--gray-medium); margin-bottom: 10px; font-size: 0.95rem; }
+    .siblings-notice { background: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+
     @media (max-width: 768px) {
       .header h1 { font-size: 2rem; }
       .form-row { grid-template-columns: 1fr; }
@@ -104,17 +111,13 @@
       .button-group { flex-direction: column; }
       .btn { width: 100%; }
       .slot-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+      .sibling-row { grid-template-columns: 1fr; }
     }
 
     .loading-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 9999; }
     .loading-overlay.active { display: flex; }
     .loading-content { background: var(--white); padding: 30px; border-radius: 15px; text-align: center; box-shadow: var(--shadow-lg); }
     .loading-content .spinner { width: 50px; height: 50px; border: 5px solid var(--gray-light); border-top-color: var(--secondary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-    .sibling-card { border:2px solid var(--gray-light); border-radius:12px; padding:15px; margin-bottom:12px; background:var(--light-bg); }
-.sibling-row { display:grid; grid-template-columns: 1.5fr 0.8fr 1fr; gap:12px; }
-.sibling-guardian { margin-top:10px; padding:10px; border-radius:10px; background:#fff; border:1px dashed var(--gray-light); }
-.sibling-remove { margin-top:10px; }
-
   </style>
 </head>
 <body>
@@ -158,73 +161,72 @@
       </div>
 
       <div class="form-section">
-  <h2>Age Verification</h2>
-  <div class="form-row">
-    <div class="form-group">
-      <label for="dob">Date of Birth <span class="required">*</span></label>
-      <input type="date" id="dob" name="dob" required />
-    </div>
-    <div class="form-group">
-      <label>Is the person receiving services over 18? <span class="required">*</span></label>
-      <div class="radio-group">
-        <div class="radio-option" data-over18="yes">
-          <input type="radio" id="over18Yes" name="over18" value="yes" required />
-          <label for="over18Yes">Yes</label>
-        </div>
-        <div class="radio-option" data-over18="no">
-          <input type="radio" id="over18No" name="over18" value="no" required />
-          <label for="over18No">No</label>
+        <h2>Age Verification</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="dob">Date of Birth <span class="required">*</span></label>
+            <input type="date" id="dob" name="dob" required />
+          </div>
+          <div class="form-group">
+            <label>Is the person receiving services over 18? <span class="required">*</span></label>
+            <div class="radio-group">
+              <div class="radio-option" data-over18="yes">
+                <input type="radio" id="over18Yes" name="over18" value="yes" required />
+                <label for="over18Yes">Yes</label>
+              </div>
+              <div class="radio-option" data-over18="no">
+                <input type="radio" id="over18No" name="over18" value="no" required />
+                <label for="over18No">No</label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
       
-        <div id="guardianInfo" class="form-section hidden">
-  <h2>Guardian Information</h2>
-  <div class="form-row">
-    <div class="form-group">
-      <label for="guardianName">Guardian Name <span class="required">*</span></label>
-      <input type="text" id="guardianName" name="guardianName" />
-    </div>
-    <div class="form-group">
-      <label for="guardianPhone">Guardian Phone <span class="required">*</span></label>
-      <input type="tel" id="guardianPhone" name="guardianPhone" placeholder="123-456-7890" />
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="guardianEmail">Guardian Email <span class="required">*</span></label>
-    <input type="email" id="guardianEmail" name="guardianEmail" />
-  </div>
-</div>
-
-<!-- Siblings / Household Section -->
-<div class="form-section">
-  <h2>Household / Siblings</h2>
-
-  <div class="form-group">
-    <label>Are there others in your household receiving services? <span class="required">*</span></label>
-    <div class="radio-group">
-      <div class="radio-option" data-household="yes">
-        <input type="radio" id="householdYes" name="householdOthers" value="yes" required />
-        <label for="householdYes">Yes</label>
+      <div id="guardianInfo" class="form-section hidden">
+        <h2>Guardian Information</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="guardianName">Guardian Name <span class="required">*</span></label>
+            <input type="text" id="guardianName" name="guardianName" />
+          </div>
+          <div class="form-group">
+            <label for="guardianPhone">Guardian Phone <span class="required">*</span></label>
+            <input type="tel" id="guardianPhone" name="guardianPhone" placeholder="123-456-7890" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="guardianEmail">Guardian Email <span class="required">*</span></label>
+          <input type="email" id="guardianEmail" name="guardianEmail" />
+        </div>
       </div>
-      <div class="radio-option" data-household="no">
-        <input type="radio" id="householdNo" name="householdOthers" value="no" required />
-        <label for="householdNo">No</label>
+
+      <!-- Siblings / Household Section -->
+      <div class="form-section">
+        <h2>Household / Siblings</h2>
+
+        <div class="form-group">
+          <label>Are there others in your household receiving services? <span class="required">*</span></label>
+          <div class="radio-group">
+            <div class="radio-option" data-household="yes">
+              <input type="radio" id="householdYes" name="householdOthers" value="yes" required />
+              <label for="householdYes">Yes</label>
+            </div>
+            <div class="radio-option" data-household="no">
+              <input type="radio" id="householdNo" name="householdOthers" value="no" required />
+              <label for="householdNo">No</label>
+            </div>
+          </div>
+        </div>
+
+        <div id="siblingsWrap" class="hidden">
+          <div class="siblings-notice">
+            <strong>Important:</strong> All household members will be scheduled in the same 3-hour block. You'll select the start time for the block.
+          </div>
+          <div id="siblingsList"></div>
+          <button type="button" class="btn btn-secondary" id="addSiblingBtn">+ Add Household Member</button>
+        </div>
       </div>
-    </div>
-  </div>
-
-  <div id="siblingsWrap" class="hidden">
-    <p class="hint" style="color:var(--gray-medium);margin-bottom:10px;">
-      All siblings will be scheduled in the <strong>same 3-hour block</strong>. You’ll pick <strong>start time only</strong>.
-    </p>
-    <div id="siblingsList"></div>
-    <button type="button" class="btn btn-secondary" id="addSiblingBtn">+ Add Sibling</button>
-  </div>
-</div>
-
 
       <div class="form-section">
         <h2>Appointment Type</h2>
@@ -279,7 +281,6 @@
           <button type="button" class="btn btn-secondary" id="loadSlotsBtn">Load Available Times</button>
         </div>
         <div id="timeSlots" class="time-slots"></div>
-        <div id="timePickerSection" class="form-group hidden"></div>
       </div>
 
       <div class="form-section">
@@ -330,185 +331,219 @@
       BOOK_APPOINTMENT_URL: 'https://sw-function-b6c4h9cnexhbh4g3.canadacentral-01.azurewebsites.net/api/CreateEvent',
       GET_SLOTS_KEY: '',
       BOOK_APPOINTMENT_KEY: '',
-      // IMPORTANT: we book in Central Time (Texas)
       TIMEZONE: 'Central Standard Time',
       SLOT_MINUTES: 20,
-      SIBLING_BLOCK_MINUTES: 180,   // 3-hour household block
-     SHOW_START_TIME_ONLY: true     // show chips as start time only in UI   
+      SIBLING_BLOCK_MINUTES: 180
     };
+
+    // Global selection
+    var selectedSlot = null;
+    var availableSlots = [];
 
     function withKey(url, key) {
       if (!key) return url;
-      try { var u = new URL(url); u.searchParams.set('code', key); return u.toString(); }
-      catch(e) { var sep = url.indexOf('?')>=0 ? '&' : '?'; return url + sep + 'code=' + encodeURIComponent(key); }
+      try { 
+        var u = new URL(url); 
+        u.searchParams.set('code', key); 
+        return u.toString(); 
+      }
+      catch(e) { 
+        var sep = url.indexOf('?')>=0 ? '&' : '?'; 
+        return url + sep + 'code=' + encodeURIComponent(key); 
+      }
     }
     
-    function addSiblingRow(){
-  var list = document.getElementById('siblingsList');
-  var div = document.createElement('div');
-  div.className = 'sibling-card';
-  div.innerHTML = `
-    <div class="sibling-row">
-      <div class="form-group">
-        <label>Sibling Name <span class="required">*</span></label>
-        <input type="text" name="siblingName[]" required />
-      </div>
-      <div class="form-group">
-        <label>Age Group <span class="required">*</span></label>
-        <select name="siblingUnder18[]" required>
-          <option value="no">18 or over</option>
-          <option value="yes">Under 18</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Guardian same as main?</label>
-        <div class="checkbox-group">
-          <input type="checkbox" name="siblingGuardianSame[]" checked />
-          <label>Yes</label>
-        </div>
-      </div>
-    </div>
-    <div class="sibling-guardian hidden">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Guardian Name <span class="required">*</span></label>
-          <input type="text" name="siblingGuardianName[]" />
-        </div>
-        <div class="form-group">
-          <label>Guardian Phone <span class="required">*</span></label>
-          <input type="tel" name="siblingGuardianPhone[]" placeholder="123-456-7890" />
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Guardian Email <span class="required">*</span></label>
-        <input type="email" name="siblingGuardianEmail[]" />
-      </div>
-    </div>
-    <button type="button" class="btn btn-secondary sibling-remove">Remove</button>
-  `;
-  list.appendChild(div);
-  applySiblingGuardianRules(div);
-}
-
-function applySiblingGuardianRules(card){
-  var under18 = card.querySelector('select[name="siblingUnder18[]"]').value === 'yes';
-  var same = card.querySelector('input[name="siblingGuardianSame[]"]').checked;
-  var box = card.querySelector('.sibling-guardian');
-
-  if (under18 && !same) {
-    box.classList.remove('hidden');
-    // require fields
-    ['siblingGuardianName[]','siblingGuardianPhone[]','siblingGuardianEmail[]'].forEach(n=>{
-      var el = card.querySelector(`[name="${n}"]`); if (el) el.required = true;
-    });
-  } else {
-    box.classList.add('hidden');
-    ['siblingGuardianName[]','siblingGuardianPhone[]','siblingGuardianEmail[]'].forEach(n=>{
-      var el = card.querySelector(`[name="${n}"]`); if (el) el.required = false;
-    });
-  }
-}
-
-   function collectSiblingsPayload(){
-  var out = [];
-  document.querySelectorAll('.sibling-card').forEach(card=>{
-    var name = (card.querySelector('[name="siblingName[]"]')?.value||'').trim();
-    var under18 = (card.querySelector('[name="siblingUnder18[]"]')?.value||'no') === 'yes';
-    var guardianSame = card.querySelector('[name="siblingGuardianSame[]"]')?.checked;
-
-    var g = null;
-    if (under18 && !guardianSame) {
-      g = {
-        name:  (card.querySelector('[name="siblingGuardianName[]"]')?.value||'').trim(),
-        phone: (card.querySelector('[name="siblingGuardianPhone[]"]')?.value||'').trim(),
-        email: (card.querySelector('[name="siblingGuardianEmail[]"]')?.value||'').trim()
-      };
+    function isSiblingFlow(){
+      var val = document.querySelector('input[name="householdOthers"]:checked');
+      return val && val.value === 'yes';
     }
-    out.push({ name, under18, guardianSame, guardian: g });
-  });
-  return out;
-}
 
+    function addSiblingRow(){
+      var list = document.getElementById('siblingsList');
+      var div = document.createElement('div');
+      div.className = 'sibling-card';
+      div.innerHTML = `
+        <div class="sibling-row">
+          <div class="form-group">
+            <label>Name <span class="required">*</span></label>
+            <input type="text" name="siblingName[]" required />
+          </div>
+          <div class="form-group">
+            <label>Age Group <span class="required">*</span></label>
+            <select name="siblingUnder18[]" required>
+              <option value="no">18 or over</option>
+              <option value="yes">Under 18</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Guardian same as main?</label>
+            <div class="checkbox-group">
+              <input type="checkbox" name="siblingGuardianSame[]" checked />
+              <label>Yes</label>
+            </div>
+          </div>
+        </div>
+        <div class="sibling-guardian hidden">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Guardian Name <span class="required">*</span></label>
+              <input type="text" name="siblingGuardianName[]" />
+            </div>
+            <div class="form-group">
+              <label>Guardian Phone <span class="required">*</span></label>
+              <input type="tel" name="siblingGuardianPhone[]" placeholder="123-456-7890" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Guardian Email <span class="required">*</span></label>
+            <input type="email" name="siblingGuardianEmail[]" />
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary sibling-remove">Remove</button>
+      `;
+      list.appendChild(div);
+      applySiblingGuardianRules(div);
+    }
 
-    // Global selection
-    // Selected slot now carries y/m/d numbers to avoid JS Date timezone shifts
-    var selectedSlot = null; // { y, m, d, start:{hour,minute}, end:{hour,minute}, display, dateStr }
-    var availableSlots = [];
+    function applySiblingGuardianRules(card){
+      var under18 = card.querySelector('select[name="siblingUnder18[]"]').value === 'yes';
+      var same = card.querySelector('input[name="siblingGuardianSame[]"]').checked;
+      var box = card.querySelector('.sibling-guardian');
+
+      if (under18 && !same) {
+        box.classList.remove('hidden');
+        ['siblingGuardianName[]','siblingGuardianPhone[]','siblingGuardianEmail[]'].forEach(n=>{
+          var el = card.querySelector(`[name="${n}"]`); 
+          if (el) el.required = true;
+        });
+      } else {
+        box.classList.add('hidden');
+        ['siblingGuardianName[]','siblingGuardianPhone[]','siblingGuardianEmail[]'].forEach(n=>{
+          var el = card.querySelector(`[name="${n}"]`); 
+          if (el) el.required = false;
+        });
+      }
+    }
+
+    function collectSiblingsPayload(){
+      var out = [];
+      document.querySelectorAll('.sibling-card').forEach(card=>{
+        var name = (card.querySelector('[name="siblingName[]"]')?.value||'').trim();
+        var under18 = (card.querySelector('[name="siblingUnder18[]"]')?.value||'no') === 'yes';
+        var guardianSame = card.querySelector('[name="siblingGuardianSame[]"]')?.checked;
+
+        var g = null;
+        if (under18 && !guardianSame) {
+          g = {
+            name:  (card.querySelector('[name="siblingGuardianName[]"]')?.value||'').trim(),
+            phone: (card.querySelector('[name="siblingGuardianPhone[]"]')?.value||'').trim(),
+            email: (card.querySelector('[name="siblingGuardianEmail[]"]')?.value||'').trim()
+          };
+        }
+        out.push({ name, under18, guardianSame, guardian: g });
+      });
+      return out;
+    }
 
     document.addEventListener('DOMContentLoaded', function () {
-
-
       // Household radios styling + show/hide siblings
-document.querySelectorAll('.radio-option[data-household]').forEach(function(card){
-  card.addEventListener('click', function(){
-    var val = this.getAttribute('data-household'); // yes/no
-    var radio = document.getElementById(val === 'yes' ? 'householdYes' : 'householdNo');
-    if (radio) radio.checked = true;
+      document.querySelectorAll('.radio-option[data-household]').forEach(function(card){
+        card.addEventListener('click', function(){
+          var val = this.getAttribute('data-household');
+          var radio = document.getElementById(val === 'yes' ? 'householdYes' : 'householdNo');
+          if (radio) radio.checked = true;
 
-    // card highlight
-    document.querySelectorAll('.radio-option[data-household]').forEach(c => c.classList.remove('selected'));
-    this.classList.add('selected');
+          document.querySelectorAll('.radio-option[data-household]').forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
 
-    var wrap = document.getElementById('siblingsWrap');
-    if (val === 'yes') { wrap.classList.remove('hidden'); if (!document.querySelector('.sibling-card')) addSiblingRow(); }
-    else { wrap.classList.add('hidden'); document.getElementById('siblingsList').innerHTML=''; }
-  });
-});
+          var wrap = document.getElementById('siblingsWrap');
+          if (val === 'yes') { 
+            wrap.classList.remove('hidden'); 
+            if (!document.querySelector('.sibling-card')) addSiblingRow(); 
+            // Reload slots if already loaded to show 3-hour blocks
+            if (availableSlots.length > 0) {
+              displayAvailableSlots(availableSlots);
+            }
+          }
+          else { 
+            wrap.classList.add('hidden'); 
+            document.getElementById('siblingsList').innerHTML='';
+            // Reload slots to show 20-minute blocks
+            if (availableSlots.length > 0) {
+              displayAvailableSlots(availableSlots);
+            } 
+          }
+        });
+      });
 
-// Add sibling button
-document.getElementById('addSiblingBtn')?.addEventListener('click', addSiblingRow);
+      // Add sibling button
+      document.getElementById('addSiblingBtn')?.addEventListener('click', addSiblingRow);
 
-// Delegate changes for under18 / guardian-same toggles
-document.getElementById('siblingsList').addEventListener('change', function(e){
-  var card = e.target.closest('.sibling-card'); if(!card) return;
+      // Delegate changes for under18 / guardian-same toggles
+      document.getElementById('siblingsList').addEventListener('change', function(e){
+        var card = e.target.closest('.sibling-card'); 
+        if(!card) return;
 
-  if (e.target.name === 'siblingUnder18[]' || e.target.name === 'siblingGuardianSame[]') {
-    applySiblingGuardianRules(card);
-  }
-});
+        if (e.target.name === 'siblingUnder18[]' || e.target.name === 'siblingGuardianSame[]') {
+          applySiblingGuardianRules(card);
+        }
+      });
 
-// Delegate remove
-document.getElementById('siblingsList').addEventListener('click', function(e){
-  if (e.target.classList.contains('sibling-remove')) {
-    e.preventDefault();
-    var card = e.target.closest('.sibling-card');
-    if (card) card.remove();
-  }
-});
-
+      // Delegate remove
+      document.getElementById('siblingsList').addEventListener('click', function(e){
+        if (e.target.classList.contains('sibling-remove')) {
+          e.preventDefault();
+          var card = e.target.closest('.sibling-card');
+          if (card) card.remove();
+        }
+      });
 
       // Handle Over 18 selection
-document.querySelectorAll('input[name="over18"]').forEach(radio => {
-  radio.addEventListener('change', function() {
-    const guardianSection = document.getElementById('guardianInfo');
-    if (this.value === 'no') {
-      guardianSection.classList.remove('hidden');
-      document.getElementById('guardianName').required = true;
-      document.getElementById('guardianPhone').required = true;
-      document.getElementById('guardianEmail').required = true;
-    } else {
-      guardianSection.classList.add('hidden');
-      document.getElementById('guardianName').required = false;
-      document.getElementById('guardianPhone').required = false;
-      document.getElementById('guardianEmail').required = false;
-    }
-  });
-});
+      document.querySelectorAll('.radio-option[data-over18]').forEach(function(card){
+        card.addEventListener('click', function(){
+          var val = this.getAttribute('data-over18');
+          var radio = document.getElementById(val === 'yes' ? 'over18Yes' : 'over18No');
+          if (radio) radio.checked = true;
+
+          document.querySelectorAll('.radio-option[data-over18]').forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+
+          const guardianSection = document.getElementById('guardianInfo');
+          if (val === 'no') {
+            guardianSection.classList.remove('hidden');
+            document.getElementById('guardianName').required = true;
+            document.getElementById('guardianPhone').required = true;
+            document.getElementById('guardianEmail').required = true;
+          } else {
+            guardianSection.classList.add('hidden');
+            document.getElementById('guardianName').required = false;
+            document.getElementById('guardianPhone').required = false;
+            document.getElementById('guardianEmail').required = false;
+          }
+        });
+      });
 
       document.getElementById('bookingForm').addEventListener('submit', handleSubmit);
       document.getElementById('loadSlotsBtn').addEventListener('click', loadAvailableSlots);
       document.getElementById('clearFormBtn').addEventListener('click', clearForm);
 
-      // Bind only the Appointment Type cards (those that have data-type)
-var typeCards = document.querySelectorAll('.radio-option[data-type]');
-typeCards.forEach(function(card){
-  card.addEventListener('click', function(){
-    selectAppointmentType(this.getAttribute('data-type'));
-  });
-});
+      // Appointment Type cards
+      var typeCards = document.querySelectorAll('.radio-option[data-type]');
+      typeCards.forEach(function(card){
+        card.addEventListener('click', function(){
+          selectAppointmentType(this.getAttribute('data-type'));
+        });
+      });
 
-
+      // Phone number formatting
       document.getElementById('phone').addEventListener('input', function (e) {
+        var v = e.target.value.replace(/\D/g,'').slice(0,10);
+        if (v.length>6) e.target.value = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
+        else if (v.length>3) e.target.value = v.slice(0,3)+'-'+v.slice(3);
+        else e.target.value = v;
+      });
+
+      document.getElementById('guardianPhone').addEventListener('input', function (e) {
         var v = e.target.value.replace(/\D/g,'').slice(0,10);
         if (v.length>6) e.target.value = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
         else if (v.length>3) e.target.value = v.slice(0,3)+'-'+v.slice(3);
@@ -516,28 +551,31 @@ typeCards.forEach(function(card){
       });
     });
 
-    function generateUUID(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){ var r=Math.random()*16|0, v=c==='x'?r:(r&0x3)|0x8; return v.toString(16).toUpperCase(); }); }
+    function generateUUID(){ 
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){ 
+        var r=Math.random()*16|0, v=c==='x'?r:(r&0x3)|0x8; 
+        return v.toString(16).toUpperCase(); 
+      }); 
+    }
 
     function selectAppointmentType(type){
-  var radio = document.getElementById(type === 'telehealth' ? 'telehealth' : 'inperson');
-  if (radio) radio.checked = true;
+      var radio = document.getElementById(type === 'telehealth' ? 'telehealth' : 'inperson');
+      if (radio) radio.checked = true;
 
-  // Card styling
-  var cards = document.querySelectorAll('.radio-option');
-  for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
-  var chosen = document.querySelector('.radio-option[data-type="' + type + '"]');
-  if (chosen) chosen.classList.add('selected');
+      var cards = document.querySelectorAll('.radio-option[data-type]');
+      for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
+      var chosen = document.querySelector('.radio-option[data-type="' + type + '"]');
+      if (chosen) chosen.classList.add('selected');
 
-  // In-person behaves like Telehealth — never show/require extra fields
-  var inPerson = document.getElementById('inPersonDetails');
-  if (inPerson) inPerson.classList.add('hidden');
+      // Always hide in-person details
+      var inPerson = document.getElementById('inPersonDetails');
+      if (inPerson) inPerson.classList.add('hidden');
 
-  var addr = document.getElementById('address');
-  var arrival = document.getElementById('arrivalWindow');
-  if (addr) addr.required = false;
-  if (arrival) arrival.required = false;
-}
-
+      var addr = document.getElementById('address');
+      var arrival = document.getElementById('arrivalWindow');
+      if (addr) addr.required = false;
+      if (arrival) arrival.required = false;
+    }
 
     function parseSlotString(slotStr){
       // slotStr like: "09 Sep 2025, 9:00 AM - 5:00 PM"
@@ -550,7 +588,6 @@ typeCards.forEach(function(card){
       var monthNum = monthMap[mon];
       var range = timePart.split(' - ');
       return {
-        // keep a Date only for local display if needed
         date: new Date(year, monthNum-1, day),
         y: year, m: monthNum, d: day,
         dateStr: datePart,
@@ -567,75 +604,37 @@ typeCards.forEach(function(card){
       if(p==='AM'&&h===12)h=0;
       return {hours:h, minutes:m};
     }
+
     function p2(n){return (n<10?'0':'')+n;}
 
-    // Build "YYYY-MM-DDTHH:MM:SS" from raw numbers (no JS Date math)
-    function ymdhms(y,m,d,h,mi){ return y+'-'+p2(m)+'-'+p2(d)+'T'+p2(h)+':'+p2(mi)+':00'; }
+    function ymdhms(y,m,d,h,mi){ 
+      return y+'-'+p2(m)+'-'+p2(d)+'T'+p2(h)+':'+p2(mi)+':00'; 
+    }
 
-    // Day-of-week from Y-M-D with UTC to avoid local tz skew
     function dowForYMD(y,m,d){
       var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
       var idx = new Date(Date.UTC(y, m-1, d)).getUTCDay();
       return days[idx];
     }
 
-    function t12rangeLabel(sH,sM,eH,eM){
-      function p2(n){return (n<10?'0':'')+n;}
-      var sAP = sH>=12?'PM':'AM';
-      var eAP = eH>=12?'PM':'AM';
-      var sHH = sH%12===0?12:sH%12;
-      var eHH = eH%12===0?12:eH%12;
-      if (sAP===eAP) {
-        return sHH+':'+p2(sM)+'–'+eHH+':'+p2(eM)+' '+sAP;
-      } else {
-        return sHH+':'+p2(sM)+' '+sAP+'–'+eHH+':'+p2(eM)+' '+eAP;
-      }
-    }
     function hmToMinutes(h,m){ return h*60+m; }
     function minutesToHM(total){ return {hour: Math.floor(total/60), minute: total%60}; }
-     
 
-    function isSiblingFlow(){
-  var val = document.querySelector('input[name="householdOthers"]:checked');
-  return val && val.value === 'yes';
-}
+    function addMinutesToHM(h, m, delta){
+      var total = h*60 + m + delta;
+      return { hour: Math.floor(total/60), minute: total%60 };
+    }
 
-function addMinutesToHM(h, m, delta){
-  var total = h*60 + m + delta;
-  return { hour: Math.floor(total/60), minute: total%60 };
-}
-
-function t12fmt(h, m){
-  function p2(n){return (n<10?'0':'')+n;}
-  var ap=h>=12?'PM':'AM';
-  var hh=h%12===0?12:(h%12);
-  return hh + ':' + p2(m) + ' ' + ap;
-}
-
-/** Build start-time chips for a target duration (20m normal, 180m siblings)
- *  If SHOW_START_TIME_ONLY=true, labels are just "9:00 AM" etc.
- */
-function makeStartTimeChips(slot, durationMinutes, stepMinutes){
-  var start24 = convertTo24Hour(slot.startTimeStr);
-  var end24   = convertTo24Hour(slot.endTimeStr);
-  var startMin = hmToMinutes(start24.hours, start24.minutes);
-  var endMin   = hmToMinutes(end24.hours, end24.minutes);
-
-  var chips = [];
-  for (var m = startMin; m + durationMinutes <= endMin; m += stepMinutes) {
-    var s = minutesToHM(m);
-    var e = minutesToHM(m + durationMinutes);
-    chips.push({
-      start: { hour: s.hour, minute: s.minute },
-      end:   { hour: e.hour, minute: e.minute }, // we still compute it, even if we hide it in the label
-      label: CONFIG.SHOW_START_TIME_ONLY ? t12fmt(s.hour, s.minute) : t12rangeLabel(s.hour, s.minute, e.hour, e.minute)
-    });
-  }
-  return chips;
-}
+    function t12fmt(h, m){
+      function p2(n){return (n<10?'0':'')+n;}
+      var ap=h>=12?'PM':'AM';
+      var hh=h%12===0?12:(h%12);
+      return hh + ':' + p2(m) + ' ' + ap;
+    }
 
     async function loadAvailableSlots(){
-      var overlay=document.getElementById('loadingOverlay'); overlay.classList.add('active');
+      var overlay=document.getElementById('loadingOverlay'); 
+      overlay.classList.add('active');
       var url = withKey(CONFIG.GET_SLOTS_URL, CONFIG.GET_SLOTS_KEY);
       try{
         var resp = await fetch(url, { method:'GET', headers:{'Accept':'application/json'} });
@@ -653,110 +652,118 @@ function makeStartTimeChips(slot, durationMinutes, stepMinutes){
         console.error(e);
         showError('Failed to load available appointment times. Please try again.');
       }
-      finally{ overlay.classList.remove('active'); }
-    }
-
-    function splitIntoTwentyMinuteChips(slot){
-      var start24 = convertTo24Hour(slot.startTimeStr);
-      var end24   = convertTo24Hour(slot.endTimeStr);
-      var startMin = hmToMinutes(start24.hours, start24.minutes);
-      var endMin   = hmToMinutes(end24.hours, end24.minutes);
-      var size = CONFIG.SLOT_MINUTES;
-
-      var chips = [];
-      for (var m = startMin; m + size <= endMin; m += size) {
-        var s = minutesToHM(m);
-        var e = minutesToHM(m + size);
-        chips.push({
-          start: { hour: s.hour, minute: s.minute },
-          end:   { hour: e.hour, minute: e.minute },
-          label: t12rangeLabel(s.hour, s.minute, e.hour, e.minute)
-        });
+      finally{ 
+        overlay.classList.remove('active'); 
       }
-      return chips;
     }
 
-      function displayAvailableSlots(slots){
-  const container = document.getElementById('timeSlots');
-  container.innerHTML='';
+    function displayAvailableSlots(slots){
+      const container = document.getElementById('timeSlots');
+      container.innerHTML='';
 
-  if(!slots || !slots.length){
-    container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
-    return;
-  }
+      if(!slots || !slots.length){
+        container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
+        return;
+      }
 
-  selectedSlot = null;
+      selectedSlot = null;
+      const isSiblings = isSiblingFlow();
+      const DURATION = isSiblings ? CONFIG.SIBLING_BLOCK_MINUTES : CONFIG.SLOT_MINUTES;
 
-  // Duration + step
-  const DURATION = isSiblingFlow() ? CONFIG.SIBLING_BLOCK_MINUTES : CONFIG.SLOT_MINUTES;
-  const STEP     = CONFIG.SLOT_MINUTES; // keep the same step/pacing for the grid
+      for (let i = 0; i < slots.length; i++) {
+        const s = slots[i];
 
-  for (let i = 0; i < slots.length; i++) {
-    const s = slots[i];
+        const card = document.createElement('div');
+        card.className = 'time-slot';
 
-    const card = document.createElement('div');
-    card.className = 'time-slot';
+        const header = document.createElement('div');
+        header.className = 'date';
+        header.textContent = `${dowForYMD(s.y, s.m, s.d)} ${s.dateStr}`;
 
-    const header = document.createElement('div');
-    header.className = 'date';
-    header.textContent = `${dowForYMD(s.y, s.m, s.d)} ${s.dateStr}`;
+        const sub = document.createElement('div');
+        sub.className = 'range';
+        sub.textContent = `Available: ${s.startTimeStr} - ${s.endTimeStr}`;
 
-    const sub = document.createElement('div');
-    sub.className = 'range';
-    // Keep the server window visible for context (ok to show range here)
-    sub.textContent = `${s.startTimeStr} - ${s.endTimeStr}`;
+        const grid = document.createElement('div');
+        grid.className = 'slot-grid';
 
-    const grid = document.createElement('div');
-    grid.className = 'slot-grid';
+        // Calculate available chips
+        const chips = [];
+        const start24 = convertTo24Hour(s.startTimeStr);
+        const end24 = convertTo24Hour(s.endTimeStr);
+        const startMin = hmToMinutes(start24.hours, start24.minutes);
+        const endMin = hmToMinutes(end24.hours, end24.minutes);
 
-    // Build chips appropriate to the flow
-    const chips = makeStartTimeChips(s, DURATION, STEP);
+        if (isSiblings) {
+          // For siblings: show start times for 3-hour blocks
+          for (let m = startMin; m + DURATION <= endMin; m += CONFIG.SLOT_MINUTES) {
+            const startHM = minutesToHM(m);
+            chips.push({
+              start: { hour: startHM.hour, minute: startHM.minute },
+              label: t12fmt(startHM.hour, startHM.minute)
+            });
+          }
+        } else {
+          // For regular: show 20-minute slots with range
+          for (let m = startMin; m + DURATION <= endMin; m += DURATION) {
+            const startHM = minutesToHM(m);
+            const endHM = minutesToHM(m + DURATION);
+            chips.push({
+              start: { hour: startHM.hour, minute: startHM.minute },
+              label: t12fmt(startHM.hour, startHM.minute) + '–' + t12fmt(endHM.hour, endHM.minute)
+            });
+          }
+        }
 
-    if (chips.length === 0) {
-      const emptyMsg = document.createElement('div');
-      emptyMsg.style.color = 'var(--gray-medium)';
-      emptyMsg.textContent = isSiblingFlow()
-        ? 'No 3-hour start times in this window.'
-        : 'No start times in this window.';
-      grid.appendChild(emptyMsg);
-    } else {
-      chips.forEach((ch) => {
-        const chipEl = document.createElement('div');
-        chipEl.className = 'slot-chip';
-        chipEl.setAttribute('role','button');
-        chipEl.setAttribute('tabindex','0');
-        chipEl.textContent = ch.label; // start time only (or range if you toggle)
+        if (chips.length === 0) {
+          const emptyMsg = document.createElement('div');
+          emptyMsg.style.color = 'var(--gray-medium)';
+          emptyMsg.textContent = isSiblings
+            ? 'No 3-hour blocks available in this window.'
+            : 'No slots available in this window.';
+          grid.appendChild(emptyMsg);
+        } else {
+          chips.forEach((ch) => {
+            const chipEl = document.createElement('div');
+            chipEl.className = 'slot-chip';
+            chipEl.setAttribute('role','button');
+            chipEl.setAttribute('tabindex','0');
+            chipEl.textContent = ch.label;
 
-        chipEl.addEventListener('click', () => {
-          document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
-          chipEl.classList.add('selected');
+            chipEl.addEventListener('click', () => {
+              document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
+              chipEl.classList.add('selected');
 
-          selectedSlot = {
-            y: s.y, m: s.m, d: s.d,
-            dateStr: s.dateStr,
-            start: { hour: ch.start.hour, minute: ch.start.minute },
-            // we keep duration; end will be derived on submit
-            durationMinutes: DURATION,
-            display: ch.label
-          };
+              selectedSlot = {
+                y: s.y, 
+                m: s.m, 
+                d: s.d,
+                dateStr: s.dateStr,
+                start: { hour: ch.start.hour, minute: ch.start.minute },
+                durationMinutes: DURATION,
+                display: ch.label
+              };
 
-          console.log('[SELECTED]', selectedSlot);
-        });
+              console.log('[SELECTED]', selectedSlot);
+            });
 
-        chipEl.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); chipEl.click(); }
-        });
+            chipEl.addEventListener('keydown', (ev) => {
+              if (ev.key === 'Enter' || ev.key === ' ') { 
+                ev.preventDefault(); 
+                chipEl.click(); 
+              }
+            });
 
-        grid.appendChild(chipEl);
-      });
+            grid.appendChild(chipEl);
+          });
+        }
+
+        card.appendChild(header);
+        card.appendChild(sub);
+        card.appendChild(grid);
+        container.appendChild(card);
+      }
     }
-
-    card.appendChild(header);
-    card.appendChild(sub);
-    card.appendChild(grid);
-    container.appendChild(card);
-  }
-}
 
     function humanTimeDisplayYMD(y,m,d,start,end){
       var mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -773,14 +780,15 @@ function makeStartTimeChips(slot, durationMinutes, stepMinutes){
       hideMessages();
 
       if(!selectedSlot){
-  showError('Please choose a start time.');
-  return false;
-}
+        showError('Please choose a start time.');
+        return false;
+      }
 
       var appt = document.querySelector('input[name="appointmentType"]:checked');
-      if(!appt){ showError('Please select an appointment type'); return false; }
-
-      
+      if(!appt){ 
+        showError('Please select an appointment type'); 
+        return false; 
+      }
 
       var email=document.getElementById('email').value.trim();
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
@@ -788,53 +796,67 @@ function makeStartTimeChips(slot, durationMinutes, stepMinutes){
         return false;
       }
        
-         var dob = new Date(document.getElementById('dob').value);
-  if (isNaN(dob)) {
-    showError('Please enter a valid Date of Birth');
-    return false;
-  }
-  var today = new Date();
-  var age = today.getFullYear() - dob.getFullYear();
-  var m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-    age--;
-  }
-  var over18Choice = document.querySelector('input[name="over18"]:checked').value;
-  if ((age >= 18 && over18Choice === 'no') || (age < 18 && over18Choice === 'yes')) {
-    showError('The DOB and Over-18 selection do not match.');
-    return false;
-  }
+      var dob = new Date(document.getElementById('dob').value);
+      if (isNaN(dob)) {
+        showError('Please enter a valid Date of Birth');
+        return false;
+      }
+      
+      var today = new Date();
+      var age = today.getFullYear() - dob.getFullYear();
+      var m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      
+      var over18Choice = document.querySelector('input[name="over18"]:checked');
+      if (!over18Choice) {
+        showError('Please select whether the client is over 18');
+        return false;
+      }
+      
+      if ((age >= 18 && over18Choice.value === 'no') || (age < 18 && over18Choice.value === 'yes')) {
+        showError('The DOB and Over-18 selection do not match.');
+        return false;
+      }
 
       if(!document.getElementById('consent').checked){
         showError('Please consent to receive appointment reminders');
         return false;
       }
+      
       if(!document.getElementById('emergency').checked){
         showError('Please confirm you are not experiencing an emergency');
         return false;
       }
        
       if (isSiblingFlow()) {
-  var sibs = document.querySelectorAll('.sibling-card');
-  if (sibs.length === 0) {
-    showError('Please add at least one sibling.');
-    return false;
-  }
-  // Ensure under-18 + different guardian has guardian fields
-  for (var i=0;i<sibs.length;i++){
-    var card = sibs[i];
-    var name = (card.querySelector('[name="siblingName[]"]')?.value||'').trim();
-    if (!name) { showError('Please enter a name for each sibling.'); return false; }
-    var under18 = (card.querySelector('[name="siblingUnder18[]"]')?.value||'no') === 'yes';
-    var same = card.querySelector('[name="siblingGuardianSame[]"]')?.checked;
-    if (under18 && !same) {
-      var gn = (card.querySelector('[name="siblingGuardianName[]"]')?.value||'').trim();
-      var gp = (card.querySelector('[name="siblingGuardianPhone[]"]')?.value||'').trim();
-      var ge = (card.querySelector('[name="siblingGuardianEmail[]"]')?.value||'').trim();
-      if (!gn || !gp || !ge) { showError('Please complete guardian info for under-18 siblings whose guardian differs.'); return false; }
-    }
-  }
-}
+        var sibs = document.querySelectorAll('.sibling-card');
+        if (sibs.length === 0) {
+          showError('Please add at least one household member.');
+          return false;
+        }
+        
+        for (var i=0;i<sibs.length;i++){
+          var card = sibs[i];
+          var name = (card.querySelector('[name="siblingName[]"]')?.value||'').trim();
+          if (!name) { 
+            showError('Please enter a name for each household member.'); 
+            return false; 
+          }
+          var under18 = (card.querySelector('[name="siblingUnder18[]"]')?.value||'no') === 'yes';
+          var same = card.querySelector('[name="siblingGuardianSame[]"]')?.checked;
+          if (under18 && !same) {
+            var gn = (card.querySelector('[name="siblingGuardianName[]"]')?.value||'').trim();
+            var gp = (card.querySelector('[name="siblingGuardianPhone[]"]')?.value||'').trim();
+            var ge = (card.querySelector('[name="siblingGuardianEmail[]"]')?.value||'').trim();
+            if (!gn || !gp || !ge) { 
+              showError('Please complete guardian info for under-18 household members whose guardian differs.'); 
+              return false; 
+            }
+          }
+        }
+      }
 
       return true;
     }
@@ -844,7 +866,8 @@ function makeStartTimeChips(slot, durationMinutes, stepMinutes){
       if(!validateForm()) return;
 
       var btn=document.getElementById('submitBtn'), spin=document.getElementById('submitSpinner');
-      btn.disabled=true; spin.classList.remove('hidden');
+      btn.disabled=true; 
+      spin.classList.remove('hidden');
 
       try{
         var form=new FormData(e.target);
@@ -853,99 +876,77 @@ function makeStartTimeChips(slot, durationMinutes, stepMinutes){
             email=String(form.get('email')||'').trim(),
             phone=String(form.get('phone')||'').trim(),
             apptType=String(form.get('appointmentType')||'').trim();
+            
         var dob = String(form.get('dob') || '').trim();
-var over18Choice = String(form.get('over18') || '').trim();
-var guardianName = String(form.get('guardianName') || '').trim();
-var guardianPhone = String(form.get('guardianPhone') || '').trim();
-var guardianEmail = String(form.get('guardianEmail') || '').trim();
+        var over18Choice = String(form.get('over18') || '').trim();
+        var guardianName = String(form.get('guardianName') || '').trim();
+        var guardianPhone = String(form.get('guardianPhone') || '').trim();
+        var guardianEmail = String(form.get('guardianEmail') || '').trim();
 
         var st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
-var duration = selectedSlot.durationMinutes || (isSiblingFlow() ? CONFIG.SIBLING_BLOCK_MINUTES : CONFIG.SLOT_MINUTES);
-var endHM = addMinutesToHM(st.hour, st.minute, duration);
+        var duration = selectedSlot.durationMinutes || (isSiblingFlow() ? CONFIG.SIBLING_BLOCK_MINUTES : CONFIG.SLOT_MINUTES);
+        var endHM = addMinutesToHM(st.hour, st.minute, duration);
 
-// Build dateTime strings
-var startDT = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, st.hour, st.minute);
-var endDT   = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, endHM.hour, endHM.minute);
+        // Build dateTime strings
+        var startDT = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, st.hour, st.minute);
+        var endDT   = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, endHM.hour, endHM.minute);
 
-        var subject=(apptType==='telehealth'?'Telehealth':'In-person')+' appointment';
-        var body='Appointment scheduled for '+apptType+' with '+first+' on '
-               + humanTimeDisplayYMD(selectedSlot.y, selectedSlot.m, selectedSlot.d, st, et)
+        var subjectBase = (apptType==='telehealth'?'Telehealth':'In-person')+' appointment';
+        if (isSiblingFlow()) subjectBase = 'Household intake (3-hour block)';
+
+        var body='Appointment scheduled for '+apptType+' with '+first+' '+last+' on '
+               + humanTimeDisplayYMD(selectedSlot.y, selectedSlot.m, selectedSlot.d, st, endHM)
                + '. Contact: '+phone+'.';
-
-        
 
         var alt=String(form.get('alternateAvailability')||''),
             notes=String(form.get('additionalNotes')||'');
+
         if(alt)  body+=' Alternate availability: '+alt+'.';
         if(notes)body+=' Additional notes: '+notes+'.';
-        
         body += ' Date of Birth: ' + dob + '.';
         body += ' Over 18: ' + (over18Choice === 'yes' ? 'Yes' : 'No') + '.';
 
         if (over18Choice === 'no') {
-  body += ' Guardian: ' + guardianName +
-          ' (Phone: ' + guardianPhone +
-          ', Email: ' + guardianEmail + ').';
-}
+          body += ' Guardian: ' + guardianName +
+                  ' (Phone: ' + guardianPhone +
+                  ', Email: ' + guardianEmail + ').';
+        }
 
-        var subjectBase = (apptType==='telehealth'?'Telehealth':'In-person')+' appointment';
-if (isSiblingFlow()) subjectBase = 'Household intake (siblings) – 3-hour block';
-
-var sx = {hour: st.hour, minute: st.minute}; // for text
-var ex = {hour: endHM.hour, minute: endHM.minute};
-
-var body='Appointment scheduled for '+apptType+' with '+first+' on '
-       + humanTimeDisplayYMD(selectedSlot.y, selectedSlot.m, selectedSlot.d, sx, ex)
-       + '. Contact: '+phone+'.';
-
-var alt=String(form.get('alternateAvailability')||''),
-    notes=String(form.get('additionalNotes')||'');
-
-if(alt)  body+=' Alternate availability: '+alt+'.';
-if(notes)body+=' Additional notes: '+notes+'.';
-body += ' Date of Birth: ' + dob + '.';
-body += ' Over 18: ' + (over18Choice === 'yes' ? 'Yes' : 'No') + '.';
-
-// Guardian (main) for the primary person if under 18 already handled above
-if (over18Choice === 'no') {
-  body += ' Guardian: ' + guardianName +
-          ' (Phone: ' + guardianPhone +
-          ', Email: ' + guardianEmail + ').';
-}
-
-// Siblings (if any)
-var householdPayload = null;
-if (isSiblingFlow()) {
-  var siblings = collectSiblingsPayload();
-  householdPayload = { hasSiblings: true, householdBlockMinutes: duration, siblings: siblings };
-  // Append a short summary into body:
-  body += ' Household: ' + siblings.map(s => {
-    var tag = s.under18 ? 'Under 18' : '18+';
-    var g = (s.under18 && !s.guardianSame && s.guardian) ? (' (guardian: '+s.guardian.name+')' ) : '';
-    return s.name + ' ['+tag+']' + g;
-  }).join('; ') + '.';
-}
-
+        // Collect siblings info
+        var householdPayload = null;
+        if (isSiblingFlow()) {
+          var siblings = collectSiblingsPayload();
+          householdPayload = { 
+            hasSiblings: true, 
+            householdBlockMinutes: duration, 
+            siblings: siblings 
+          };
+          
+          body += ' Household members: ' + siblings.map(s => {
+            var tag = s.under18 ? 'Under 18' : '18+';
+            var g = (s.under18 && !s.guardianSame && s.guardian) ? (' (guardian: '+s.guardian.name+')' ) : '';
+            return s.name + ' ['+tag+']' + g;
+          }).join('; ') + '.';
+        }
 
         var payload={
-          subject: subject,
+          subject: subjectBase,
           body: body,
-          // Send per-field timeZone (Central) so the server books the intended wall time
           start: { dateTime: startDT, timeZone: CONFIG.TIMEZONE },
           end:   { dateTime: endDT,   timeZone: CONFIG.TIMEZONE },
-          expectedDate: selectedSlot.y + '-' + p2(selectedSlot.m) + '-' + p2(selectedSlot.d), // server-side sanity check
+          expectedDate: selectedSlot.y + '-' + p2(selectedSlot.m) + '-' + p2(selectedSlot.d),
           location:{ displayName: apptType==='telehealth'?'video':'in-person' },
           attendees:[{ address: email, name: first+' '+last, type:'required' }],
           allowNewTimeProposals:true,
           transactionId: generateUUID(),
           dob: dob,
-         over18: over18Choice,
-         guardian: over18Choice === 'no' ? {
-        name: guardianName,
-       phone: guardianPhone,
-       email: guardianEmail,
-       household: householdPayload
-  } : null
+          over18: over18Choice,
+          guardian: over18Choice === 'no' ? {
+            name: guardianName,
+            phone: guardianPhone,
+            email: guardianEmail
+          } : null,
+          household: householdPayload
         };
 
         console.log('[BOOK payload]', payload);
@@ -958,7 +959,8 @@ if (isSiblingFlow()) {
         });
 
         if(!resp.ok){
-          var t=''; try{ t=await resp.text(); }catch(_){}
+          var t=''; 
+          try{ t=await resp.text(); }catch(_){}
           throw new Error('Failed to book ('+resp.status+') '+t);
         }
 
@@ -969,16 +971,20 @@ if (isSiblingFlow()) {
         showError('There was an error booking your appointment. Please try again or call us directly.');
       }
       finally{
-        btn.disabled=false; spin.classList.add('hidden');
+        btn.disabled=false; 
+        spin.classList.add('hidden');
       }
     }
 
     function clearForm(){
       document.getElementById('bookingForm').reset();
+      document.getElementById('guardianInfo').classList.add('hidden');
+      document.getElementById('siblingsWrap').classList.add('hidden');
+      document.getElementById('siblingsList').innerHTML='';
       document.getElementById('inPersonDetails').classList.add('hidden');
-      document.getElementById('timePickerSection').classList.add('hidden');
       document.getElementById('timeSlots').innerHTML='';
       selectedSlot=null;
+      availableSlots = [];
       hideMessages();
       var allChips = document.querySelectorAll('.slot-chip');
       for (var k=0;k<allChips.length;k++) allChips[k].classList.remove('selected');
@@ -986,9 +992,25 @@ if (isSiblingFlow()) {
       for(var i=0;i<cards.length;i++) cards[i].classList.remove('selected');
     }
 
-    function showSuccess(){ hideMessages(); var el=document.getElementById('successMessage'); el.style.display='block'; setTimeout(function(){ el.style.display='none'; }, 5000); }
-    function showError(msg){ hideMessages(); var el=document.getElementById('errorMessage'); el.textContent=msg; el.style.display='block'; setTimeout(function(){ el.style.display='none'; }, 6000); }
-    function hideMessages(){ document.getElementById('successMessage').style.display='none'; document.getElementById('errorMessage').style.display='none'; }
+    function showSuccess(){ 
+      hideMessages(); 
+      var el=document.getElementById('successMessage'); 
+      el.style.display='block'; 
+      setTimeout(function(){ el.style.display='none'; }, 5000); 
+    }
+    
+    function showError(msg){ 
+      hideMessages(); 
+      var el=document.getElementById('errorMessage'); 
+      el.textContent=msg; 
+      el.style.display='block'; 
+      setTimeout(function(){ el.style.display='none'; }, 6000); 
+    }
+    
+    function hideMessages(){ 
+      document.getElementById('successMessage').style.display='none'; 
+      document.getElementById('errorMessage').style.display='none'; 
+    }
   </script>
 </body>
 </html>
