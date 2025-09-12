@@ -230,12 +230,37 @@
         </div>
 
         <div id="siblingsWrap" class="hidden">
-          <div class="siblings-notice">
-            <strong>Important:</strong> All household members will be scheduled in the same 3-hour block. You'll select the start time for the block.
-          </div>
-          <div id="siblingsList"></div>
-          <button type="button" class="btn btn-secondary" id="addSiblingBtn">+ Add Household Member</button>
-        </div>
+         <div class="siblings-notice">
+  <strong>Important:</strong> All household members will be scheduled in the same 3-hour block. You'll select the start time for the block.
+</div>
+
+<div id="siblingsList"></div>
+<button type="button" class="btn btn-secondary" id="addSiblingBtn">+ Add Household Member</button>
+
+<!-- Household-level guardian (one guardian for all under-18 siblings) -->
+<div class="sibling-guardian-toggle" style="margin-top:16px">
+  <input type="checkbox" id="householdGuardianSame" checked />
+  <label for="householdGuardianSame">
+    Guardian for under-18 household members is the same as the main client's guardian
+  </label>
+</div>
+
+<div id="householdGuardianFields" class="sibling-guardian-fields hidden">
+  <div class="form-row">
+    <div class="form-group">
+      <label>Guardian Name <span class="required">*</span></label>
+      <input type="text" id="householdGuardianName" />
+    </div>
+    <div class="form-group">
+      <label>Guardian Phone <span class="required">*</span></label>
+      <input type="tel" id="householdGuardianPhone" placeholder="123-456-7890" />
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Guardian Email <span class="required">*</span></label>
+    <input type="email" id="householdGuardianEmail" />
+  </div>
+</div>
       </div>
 
       <div class="form-section">
@@ -346,57 +371,35 @@
     }
 
     function addSiblingRow(){
-      siblingCounter++;
-      var list = document.getElementById('siblingsList');
-      var div = document.createElement('div');
-      div.className = 'sibling-card';
-      div.setAttribute('data-sibling-id', siblingCounter);
-      
-      div.innerHTML = `
-        <div class="sibling-header">
-          <span class="sibling-title">Household Member</span>
-          <button type="button" class="btn-remove">Remove</button>
-        </div>
-        <div class="sibling-row">
-          <div class="form-group">
-            <label>Name <span class="required">*</span></label>
-            <input type="text" name="siblingName[]" required />
-          </div>
-          <div class="form-group">
-            <label>Age Group <span class="required">*</span></label>
-            <select name="siblingUnder18[]" class="sibling-age-select" required>
-              <option value="no">18 or over</option>
-              <option value="yes">Under 18</option>
-            </select>
-          </div>
-        </div>
-        <div class="sibling-guardian-toggle">
-          <input type="checkbox" id="siblingGuardianSame_${siblingCounter}" name="siblingGuardianSame[]" class="guardian-same-check" checked />
-          <label for="siblingGuardianSame_${siblingCounter}">Guardian same as main client</label>
-        </div>
-        <div class="sibling-guardian-fields hidden">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Guardian Name <span class="required">*</span></label>
-              <input type="text" name="siblingGuardianName[]" class="sib-guardian-name" />
-            </div>
-            <div class="form-group">
-              <label>Guardian Phone <span class="required">*</span></label>
-              <input type="tel" name="siblingGuardianPhone[]" class="sib-guardian-phone" placeholder="123-456-7890" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Guardian Email <span class="required">*</span></label>
-            <input type="email" name="siblingGuardianEmail[]" class="sib-guardian-email" />
-          </div>
-        </div>
-      `;
-      
-      list.appendChild(div);
-      
-      // Set up event listeners for this card
-      setupSiblingCardListeners(div);
-    }
+  siblingCounter++;
+  var list = document.getElementById('siblingsList');
+  var div = document.createElement('div');
+  div.className = 'sibling-card';
+  div.setAttribute('data-sibling-id', siblingCounter);
+
+  div.innerHTML = `
+    <div class="sibling-header">
+      <span class="sibling-title">Household Member</span>
+      <button type="button" class="btn-remove">Remove</button>
+    </div>
+    <div class="sibling-row">
+      <div class="form-group">
+        <label>Name <span class="required">*</span></label>
+        <input type="text" name="siblingName[]" required />
+      </div>
+      <div class="form-group">
+        <label>Age Group <span class="required">*</span></label>
+        <select name="siblingUnder18[]" class="sibling-age-select" required>
+          <option value="no">18 or over</option>
+          <option value="yes">Under 18</option>
+        </select>
+      </div>
+    </div>
+  `;
+
+  list.appendChild(div);
+  div.querySelector('.btn-remove').addEventListener('click', () => div.remove());
+}
 
     function setupSiblingCardListeners(card) {
 // Age select change
@@ -468,24 +471,50 @@ if (gp) gp.required = req;
 if (ge) ge.required = req;
 }
     function collectSiblingsPayload(){
-      var out = [];
-      document.querySelectorAll('.sibling-card').forEach(card => {
-        var name = (card.querySelector('[name="siblingName[]"]')?.value||'').trim();
-        var under18 = (card.querySelector('[name="siblingUnder18[]"]')?.value||'no') === 'yes';
-        var guardianSame = card.querySelector('[name="siblingGuardianSame[]"]')?.checked;
+  var out = [];
+  document.querySelectorAll('.sibling-card').forEach(card => {
+    var name = (card.querySelector('[name="siblingName[]"]')?.value||'').trim();
+    var under18 = (card.querySelector('[name="siblingUnder18[]"]')?.value||'no') === 'yes';
+    out.push({ name, under18 });
+  });
+  return out;
+}
 
-        var g = null;
-        if (under18 && !guardianSame) {
-          g = {
-            name:  (card.querySelector('[name="siblingGuardianName[]"]')?.value||'').trim(),
-            phone: (card.querySelector('[name="siblingGuardianPhone[]"]')?.value||'').trim(),
-            email: (card.querySelector('[name="siblingGuardianEmail[]"]')?.value||'').trim()
-          };
-        }
-        out.push({ name, under18, guardianSame, guardian: g });
+function setupHouseholdGuardianUI(){
+  var chk = document.getElementById('householdGuardianSame');
+  var wrap = document.getElementById('householdGuardianFields');
+
+  function formatPhone(el){
+    if (!el) return;
+    el.addEventListener('input', function(e){
+      var v = e.target.value.replace(/\D/g,'').slice(0,10);
+      if (v.length>6) e.target.value = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
+      else if (v.length>3) e.target.value = v.slice(0,3)+'-'+v.slice(3);
+      else e.target.value = v;
+    });
+  }
+  formatPhone(document.getElementById('householdGuardianPhone'));
+
+  function refresh(){
+    if (chk.checked){
+      wrap.classList.add('hidden');
+      ['householdGuardianName','householdGuardianPhone','householdGuardianEmail'].forEach(id=>{
+        var el = document.getElementById(id);
+        if (el){ el.required = false; el.value = ''; }
       });
-      return out;
+    } else {
+      wrap.classList.remove('hidden');
+      ['householdGuardianName','householdGuardianPhone','householdGuardianEmail'].forEach(id=>{
+        var el = document.getElementById(id);
+        if (el) el.required = true;
+      });
     }
+  }
+
+  chk.addEventListener('change', refresh);
+  refresh();
+}
+
 
     document.addEventListener('DOMContentLoaded', function () {
       // Household radios styling + show/hide siblings
@@ -568,6 +597,8 @@ if (ge) ge.required = req;
           selectAppointmentType(this.getAttribute('data-type'));
         });
       });
+     
+      setupHouseholdGuardianUI();
 
       // Phone number formatting
       document.getElementById('phone').addEventListener('input', function (e) {
@@ -941,216 +972,285 @@ return days[new Date(y, m-1, d).getDay()];
     }
 
     function validateForm(){
-      hideMessages();
+  hideMessages();
 
-      if(!selectedSlot){
-        showError('Please choose a start time.');
-        return false;
-      }
+  if(!selectedSlot){
+    showError('Please choose a start time.');
+    return false;
+  }
 
-      var appt = document.querySelector('input[name="appointmentType"]:checked');
-      if(!appt){ 
-        showError('Please select an appointment type'); 
+  var appt = document.querySelector('input[name="appointmentType"]:checked');
+  if(!appt){ 
+    showError('Please select an appointment type'); 
+    return false; 
+  }
+
+  var email=document.getElementById('email').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    showError('Please enter a valid email address');
+    return false;
+  }
+  
+  var dob = new Date(document.getElementById('dob').value);
+  if (isNaN(dob)) {
+    showError('Please enter a valid Date of Birth');
+    return false;
+  }
+  var today = new Date();
+  var age = today.getFullYear() - dob.getFullYear();
+  var m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+
+  var over18Choice = document.querySelector('input[name="over18"]:checked');
+  if (!over18Choice) {
+    showError('Please select whether the client is over 18');
+    return false;
+  }
+  if ((age >= 18 && over18Choice.value === 'no') || (age < 18 && over18Choice.value === 'yes')) {
+    showError('The DOB and Over-18 selection do not match.');
+    return false;
+  }
+
+  if(!document.getElementById('consent').checked){
+    showError('Please consent to receive appointment reminders');
+    return false;
+  }
+  if(!document.getElementById('emergency').checked){
+    showError('Please confirm you are not experiencing an emergency');
+    return false;
+  }
+
+  if (isSiblingFlow()) {
+    // Gather and validate siblings
+    var sibs = collectSiblingsPayload();
+    if (sibs.length === 0) {
+      showError('Please add at least one household member.');
+      return false;
+    }
+    for (var i=0;i<sibs.length;i++){
+      if (!sibs[i].name) { 
+        showError('Please enter a name for each household member.'); 
         return false; 
       }
-
-      var email=document.getElementById('email').value.trim();
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-        showError('Please enter a valid email address');
-        return false;
-      }
-       
-      var dob = new Date(document.getElementById('dob').value);
-      if (isNaN(dob)) {
-        showError('Please enter a valid Date of Birth');
-        return false;
-      }
-      
-      var today = new Date();
-      var age = today.getFullYear() - dob.getFullYear();
-      var m = today.getMonth() - dob.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-        age--;
-      }
-      
-      var over18Choice = document.querySelector('input[name="over18"]:checked');
-      if (!over18Choice) {
-        showError('Please select whether the client is over 18');
-        return false;
-      }
-      
-      if ((age >= 18 && over18Choice.value === 'no') || (age < 18 && over18Choice.value === 'yes')) {
-        showError('The DOB and Over-18 selection do not match.');
-        return false;
-      }
-
-      if(!document.getElementById('consent').checked){
-        showError('Please consent to receive appointment reminders');
-        return false;
-      }
-      
-      if(!document.getElementById('emergency').checked){
-        showError('Please confirm you are not experiencing an emergency');
-        return false;
-      }
-       
-      if (isSiblingFlow()) {
-        var sibs = document.querySelectorAll('.sibling-card');
-        if (sibs.length === 0) {
-          showError('Please add at least one household member.');
-          return false;
-        }
-        
-        for (var i=0;i<sibs.length;i++){
-          var card = sibs[i];
-          var name = (card.querySelector('[name="siblingName[]"]')?.value||'').trim();
-          if (!name) { 
-            showError('Please enter a name for each household member.'); 
-            return false; 
-          }
-          var under18 = (card.querySelector('[name="siblingUnder18[]"]')?.value||'no') === 'yes';
-          var same = card.querySelector('[name="siblingGuardianSame[]"]')?.checked;
-          if (under18 && !same) {
-            var gn = (card.querySelector('[name="siblingGuardianName[]"]')?.value||'').trim();
-            var gp = (card.querySelector('[name="siblingGuardianPhone[]"]')?.value||'').trim();
-            var ge = (card.querySelector('[name="siblingGuardianEmail[]"]')?.value||'').trim();
-            if (!gn || !gp || !ge) { 
-              showError('Please complete guardian info for under-18 household members whose guardian differs.'); 
-              return false; 
-            }
-          }
-        }
-        
-        // Verify they selected a household slot
-        if (selectedSlot && selectedSlot.mode !== 'household') {
-          showError('Please use "Load Available Times (3-hour blocks)" for household appointments.');
-          return false;
-        }
-      } else {
-        // Verify they selected a normal slot
-        if (selectedSlot && selectedSlot.mode === 'household') {
-          showError('Please use "Load Available Times (20-minute slots)" for individual appointments.');
-          return false;
-        }
-      }
-
-      return true;
     }
 
+    var anyUnder18 = sibs.some(s => s.under18);
+    var same = document.getElementById('householdGuardianSame').checked;
+
+    if (anyUnder18){
+      if (same){
+        // If minors use same guardian as main, the main must have a guardian on file.
+        if (over18Choice.value === 'yes'){
+          showError('At least one household member is under 18. Please uncheck the "same as main" option and provide guardian details for minors.');
+          return false;
+        } else {
+          // Ensure main guardian fields present
+          var gn = (document.getElementById('guardianName').value||'').trim();
+          var gp = (document.getElementById('guardianPhone').value||'').trim();
+          var ge = (document.getElementById('guardianEmail').value||'').trim();
+          if (!gn || !gp || !ge){
+            showError('Please complete the main guardian information for the minors.');
+            return false;
+          }
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ge)){
+            showError('Please enter a valid main guardian email');
+            return false;
+          }
+        }
+      } else {
+        // Alternate household guardian required
+        var hgn = (document.getElementById('householdGuardianName').value||'').trim();
+        var hgp = (document.getElementById('householdGuardianPhone').value||'').trim();
+        var hge = (document.getElementById('householdGuardianEmail').value||'').trim();
+        if (!hgn || !hgp || !hge){
+          showError('Please complete the alternate guardian information for the minors.');
+          return false;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(hge)){
+          showError('Please enter a valid alternate guardian email');
+          return false;
+        }
+      }
+    }
+
+    // Ensure household slot mode is used
+    if (selectedSlot && selectedSlot.mode !== 'household') {
+      showError('Please use "Load Available Times (3-hour blocks)" for household appointments.');
+      return false;
+    }
+  } else {
+    // Individual: ensure normal slot mode is used
+    if (selectedSlot && selectedSlot.mode === 'household') {
+      showError('Please use "Load Available Times (20-minute slots)" for individual appointments.');
+      return false;
+    }
+  }
+
+  return true;
+}
+
     async function handleSubmit(e){
-      e.preventDefault();
-      if(!validateForm()) return;
+  e.preventDefault();
+  if(!validateForm()) return;
 
-      var btn=document.getElementById('submitBtn'), spin=document.getElementById('submitSpinner');
-      btn.disabled=true; 
-      spin.classList.remove('hidden');
+  var btn=document.getElementById('submitBtn'), spin=document.getElementById('submitSpinner');
+  btn.disabled=true; 
+  spin.classList.remove('hidden');
 
-      try{
-        var form=new FormData(e.target);
-        var first=String(form.get('firstName')||'').trim(),
-            last =String(form.get('lastName')||'').trim(),
-            email=String(form.get('email')||'').trim(),
-            phone=String(form.get('phone')||'').trim(),
-            apptType=String(form.get('appointmentType')||'').trim();
-            
-        var dob = String(form.get('dob') || '').trim();
-        var over18Choice = String(form.get('over18') || '').trim();
-        var guardianName = String(form.get('guardianName') || '').trim();
-        var guardianPhone = String(form.get('guardianPhone') || '').trim();
-        var guardianEmail = String(form.get('guardianEmail') || '').trim();
+  try{
+    var form=new FormData(e.target);
+    var first=String(form.get('firstName')||'').trim(),
+        last =String(form.get('lastName')||'').trim(),
+        email=String(form.get('email')||'').trim(),
+        phone=String(form.get('phone')||'').trim(),
+        apptType=String(form.get('appointmentType')||'').trim();
+        
+    var dob = String(form.get('dob') || '').trim();
+    var over18Choice = String(form.get('over18') || '').trim(); // 'yes' | 'no'
+    var guardianName = String(form.get('guardianName') || '').trim();
+    var guardianPhone = String(form.get('guardianPhone') || '').trim();
+    var guardianEmail = String(form.get('guardianEmail') || '').trim();
 
-        var st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
-        var duration = selectedSlot.durationMinutes;
-        var endHM = addMinutesToHM(st.hour, st.minute, duration);
+    var st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
+    var duration = selectedSlot.durationMinutes;
+    var endHM = addMinutesToHM(st.hour, st.minute, duration);
 
-        // Build dateTime strings
-        var startDT = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, st.hour, st.minute);
-        var endDT   = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, endHM.hour, endHM.minute);
+    // Build dateTime strings
+    var startDT = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, st.hour, st.minute);
+    var endDT   = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, endHM.hour, endHM.minute);
 
-        var subjectBase = (apptType==='telehealth'?'Telehealth':'In-person')+' appointment';
-        if (isSiblingFlow()) subjectBase = 'Household intake (3-hour block)';
+    // Friendly label for body text
+    var apptTypeLabel = (apptType === 'telehealth' ? 'telehealth' : 'in-person');
 
-        var body='Appointment scheduled for '+apptType+' with '+first+' '+last+' on '
-               + humanTimeDisplayYMD(selectedSlot.y, selectedSlot.m, selectedSlot.d, st, endHM)
-               + '. Contact: '+phone+'.';
+    var subjectBase = (apptType==='telehealth'?'Telehealth':'In-person')+' appointment';
+    if (isSiblingFlow()) subjectBase = 'Household intake (3-hour block)';
 
-        var alt=String(form.get('alternateAvailability')||''),
-            notes=String(form.get('additionalNotes')||'');
+    var body='Appointment scheduled for '+apptTypeLabel+' with '+first+' '+last+' on '
+           + humanTimeDisplayYMD(selectedSlot.y, selectedSlot.m, selectedSlot.d, st, endHM)
+           + '. Contact: '+phone+'.';
 
-        if(alt)  body+=' Alternate availability: '+alt+'.';
-        if(notes)body+=' Additional notes: '+notes+'.';
-        body += ' Date of Birth: ' + dob + '.';
-        body += ' Over 18: ' + (over18Choice === 'yes' ? 'Yes' : 'No') + '.';
+    var alt=String(form.get('alternateAvailability')||''),
+        notes=String(form.get('additionalNotes')||'');
 
-        if (over18Choice === 'no') {
-          body += ' Guardian: ' + guardianName +
-                  ' (Phone: ' + guardianPhone +
-                  ', Email: ' + guardianEmail + ').';
-        }
+    if(alt)  body+=' Alternate availability: '+alt+'.';
+    if(notes)body+=' Additional notes: '+notes+'.';
+    body += ' Date of Birth: ' + dob + '.';
+    body += ' Over 18: ' + (over18Choice === 'yes' ? 'Yes' : 'No') + '.';
 
-        // Collect siblings info
-        var householdPayload = null;
-        if (isSiblingFlow()) {
-          var siblings = collectSiblingsPayload();
-          householdPayload = { 
-            hasSiblings: true, 
-            householdBlockMinutes: duration, 
-            siblings: siblings 
-          };
-          
-          body += ' Household members: ' + siblings.map(s => {
-            var tag = s.under18 ? 'Under 18' : '18+';
-            var g = (s.under18 && !s.guardianSame && s.guardian) ? (' (guardian: '+s.guardian.name+')' ) : '';
-            return s.name + ' ['+tag+']' + g;
-          }).join('; ') + '.';
-        }
+    // Build household payload if needed
+    var householdPayload = null;
+    if (isSiblingFlow()) {
+      var siblings = collectSiblingsPayload();
+      var anyUnder18 = siblings.some(s => s.under18);
+      var same = document.getElementById('householdGuardianSame').checked;
 
-        var payload={
-          subject: subjectBase,
-          body: body,
-          start: { dateTime: startDT, timeZone: CONFIG.TIMEZONE },
-          end:   { dateTime: endDT,   timeZone: CONFIG.TIMEZONE },
-          expectedDate: selectedSlot.y + '-' + p2(selectedSlot.m) + '-' + p2(selectedSlot.d),
-          location:{ displayName: apptType==='telehealth'?'video':'in-person' },
-          attendees:[{ address: email, name: first+' '+last, type:'required' }],
-          allowNewTimeProposals:true,
-          transactionId: generateUUID(),
-          dob: dob,
-          over18: over18Choice,
-          guardian: over18Choice === 'no' ? {
+      // Work out the guardian used for minors (if any)
+      var hGuardian = null; // {name, phone, email} or null
+      if (anyUnder18){
+        if (same){
+          // Use main guardian (safe because validateForm ensures it's present only when main is under 18)
+          hGuardian = (over18Choice === 'no') ? {
             name: guardianName,
             phone: guardianPhone,
             email: guardianEmail
-          } : null,
-          household: householdPayload
-        };
-
-        console.log('[BOOK payload]', payload);
-
-        var url=withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY);
-        var resp=await fetch(url,{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Accept':'application/json'},
-          body: JSON.stringify(payload)
-        });
-
-        if(!resp.ok){
-          var t=''; 
-          try{ t=await resp.text(); }catch(_){}
-          throw new Error('Failed to book ('+resp.status+') '+t);
+          } : null; // shouldn't happen due to validation
+        } else {
+          hGuardian = {
+            name:  (document.getElementById('householdGuardianName').value||'').trim(),
+            phone: (document.getElementById('householdGuardianPhone').value||'').trim(),
+            email: (document.getElementById('householdGuardianEmail').value||'').trim()
+          };
         }
-
-        showSuccess();
-        setTimeout(clearForm, 1500);
-      }catch(err){
-        console.error(err);
-        showError('There was an error booking your appointment. Please try again or call us directly.');
       }
-      finally{
-        btn.disabled=false; 
-        spin.classList.add('hidden');
+
+      // Replicate guardian info to each under-18 sibling (backend gets full per-sibling details)
+      var siblingsForPayload = siblings.map(s => {
+        var row = { name: s.name, under18: s.under18 };
+        if (s.under18){
+          row.guardianSame = same;
+          row.guardian = hGuardian ? { ...hGuardian } : null;
+        }
+        return row;
+      });
+
+      householdPayload = { 
+        hasSiblings: true, 
+        householdBlockMinutes: duration,
+        under18Guardian: { sameAsMain: same, details: hGuardian }, // household-level convenience
+        siblings: siblingsForPayload
+      };
+
+      // Body text: list siblings and show under-18 guardian summary
+      body += ' Household members: ' + siblings.map(s => {
+        return s.name + ' [' + (s.under18 ? 'Under 18' : '18+') + ']';
+      }).join('; ') + '.';
+
+      if (anyUnder18){
+        if (same && hGuardian){
+          body += ' Under-18 guardian (same as main): ' + hGuardian.name +
+                  ' (Phone: ' + hGuardian.phone + ', Email: ' + hGuardian.email + ').';
+        } else if (!same && hGuardian){
+          body += ' Under-18 guardian: ' + hGuardian.name +
+                  ' (Phone: ' + hGuardian.phone + ', Email: ' + hGuardian.email + ').';
+        } else if (same && !hGuardian){
+          body += ' Under-18 guardian: same as main.';
+        }
+      }
+    } else {
+      // Individual: include main guardian only if main is under 18
+      if (over18Choice === 'no') {
+        body += ' Guardian: ' + guardianName +
+                ' (Phone: ' + guardianPhone +
+                ', Email: ' + guardianEmail + ').';
       }
     }
+
+    var payload={
+      subject: subjectBase,
+      body: body,
+      start: { dateTime: startDT, timeZone: CONFIG.TIMEZONE },
+      end:   { dateTime: endDT,   timeZone: CONFIG.TIMEZONE },
+      expectedDate: selectedSlot.y + '-' + p2(selectedSlot.m) + '-' + p2(selectedSlot.d),
+      location:{ displayName: apptType==='telehealth'?'video':'in-person' },
+      attendees:[{ address: email, name: first+' '+last, type:'required' }],
+      allowNewTimeProposals:true,
+      transactionId: generateUUID(),
+      dob: dob,
+      over18: over18Choice,
+      guardian: over18Choice === 'no' ? {
+        name: guardianName,
+        phone: guardianPhone,
+        email: guardianEmail
+      } : null,
+      household: householdPayload
+    };
+
+    console.log('[BOOK payload]', payload);
+
+    var url=withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY);
+    var resp=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    if(!resp.ok){
+      var t=''; 
+      try{ t=await resp.text(); }catch(_){}
+      throw new Error('Failed to book ('+resp.status+') '+t);
+    }
+
+    showSuccess();
+    setTimeout(clearForm, 1500);
+  }catch(err){
+    console.error(err);
+    showError('There was an error booking your appointment. Please try again or call us directly.');
+  }
+  finally{
+    btn.disabled=false; 
+    spin.classList.add('hidden');
+  }
+}
 
     function clearForm(){
       document.getElementById('bookingForm').reset();
