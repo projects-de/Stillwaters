@@ -399,59 +399,74 @@
     }
 
     function setupSiblingCardListeners(card) {
-      // Age select change
-      var ageSelect = card.querySelector('.sibling-age-select');
-      ageSelect.addEventListener('change', function() {
-        updateSiblingGuardianVisibility(card);
-      });
-      
-      // Guardian same checkbox change
-      var guardianCheck = card.querySelector('.guardian-same-check');
-      guardianCheck.addEventListener('change', function() {
-        updateSiblingGuardianVisibility(card);
-      });
-      
-      // Remove button
-      var removeBtn = card.querySelector('.btn-remove');
-      removeBtn.addEventListener('click', function() {
-        card.remove();
-      });
-      
-      // Phone formatting for guardian phone
-      var guardianPhone = card.querySelector('.sib-guardian-phone');
-      if (guardianPhone) {
-        guardianPhone.addEventListener('input', function(e) {
-          var v = e.target.value.replace(/\D/g,'').slice(0,10);
-          if (v.length>6) e.target.value = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
-          else if (v.length>3) e.target.value = v.slice(0,3)+'-'+v.slice(3);
-          else e.target.value = v;
-        });
-      }
-    }
+// Age select change
+var ageSelect = card.querySelector('.sibling-age-select');
+ageSelect.addEventListener('change', function() {
+updateSiblingGuardianVisibility(card);
+});
 
+
+// Guardian same checkbox change
+var guardianCheck = card.querySelector('.guardian-same-check');
+guardianCheck.addEventListener('change', function() {
+updateSiblingGuardianVisibility(card);
+});
+
+
+// Remove button
+var removeBtn = card.querySelector('.btn-remove');
+removeBtn.addEventListener('click', function() {
+card.remove();
+});
+
+
+// Phone formatting for guardian phone
+var guardianPhone = card.querySelector('.sib-guardian-phone');
+if (guardianPhone) {
+guardianPhone.addEventListener('input', function(e) {
+var v = e.target.value.replace(/\D/g,'').slice(0,10);
+if (v.length>6) e.target.value = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
+else if (v.length>3) e.target.value = v.slice(0,3)+'-'+v.slice(3);
+else e.target.value = v;
+});
+}
+
+
+// Initialize state based on defaults
+updateSiblingGuardianVisibility(card);
+}
     function updateSiblingGuardianVisibility(card) {
-      var ageSelect = card.querySelector('.sibling-age-select');
-      var guardianCheck = card.querySelector('.guardian-same-check');
-      var guardianFields = card.querySelector('.sibling-guardian-fields');
-      
-      var isUnder18 = ageSelect.value === 'yes';
-      var isDifferentGuardian = !guardianCheck.checked;
-      
-      if (isUnder18 && isDifferentGuardian) {
-        guardianFields.classList.remove('hidden');
-        // Make fields required
-        card.querySelector('.sib-guardian-name').required = true;
-        card.querySelector('.sib-guardian-phone').required = true;
-        card.querySelector('.sib-guardian-email').required = true;
-      } else {
-        guardianFields.classList.add('hidden');
-        // Remove required
-        card.querySelector('.sib-guardian-name').required = false;
-        card.querySelector('.sib-guardian-phone').required = false;
-        card.querySelector('.sib-guardian-email').required = false;
-      }
-    }
+var ageSelect = card.querySelector('.sibling-age-select');
+var guardianCheck = card.querySelector('.guardian-same-check');
+var guardianFields = card.querySelector('.sibling-guardian-fields');
 
+
+var isUnder18 = (ageSelect.value === 'yes');
+var notSameGuardian = !guardianCheck.checked;
+
+
+// Always SHOW the fields if guardian is NOT same as main, hide otherwise
+if (notSameGuardian) {
+guardianFields.classList.remove('hidden');
+} else {
+guardianFields.classList.add('hidden');
+// Clear & un-require when hiding
+['.sib-guardian-name', '.sib-guardian-phone', '.sib-guardian-email'].forEach(sel => {
+var el = card.querySelector(sel);
+if (el) { el.required = false; el.value = ''; }
+});
+}
+
+
+// Required iff Under 18 AND guardian != main
+var req = isUnder18 && notSameGuardian;
+var gn = card.querySelector('.sib-guardian-name');
+var gp = card.querySelector('.sib-guardian-phone');
+var ge = card.querySelector('.sib-guardian-email');
+if (gn) gn.required = req;
+if (gp) gp.required = req;
+if (ge) ge.required = req;
+}
     function collectSiblingsPayload(){
       var out = [];
       document.querySelectorAll('.sibling-card').forEach(card => {
@@ -588,24 +603,29 @@
     }
 
     function parseSlotString(slotStr){
-      var parts = slotStr.split(', ');
-      var datePart = parts[0];
-      var timePart = parts[1];
-      var dt = datePart.split(' ');
-      var day = parseInt(dt[0],10), mon = dt[1], year = parseInt(dt[2],10);
-      var monthMap = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
-      var monthNum = monthMap[mon];
-      var range = timePart.split(' - ');
-      return {
-        date: new Date(year, monthNum-1, day),
-        y: year, m: monthNum, d: day,
-        dateStr: datePart,
-        startTimeStr: range[0],
-        endTimeStr: range[1],
-        originalString: slotStr
-      };
-    }
-
+// Example: "12 Sep 2025, 12:31 PM - 12:40 PM"
+var parts = slotStr.split(', ');
+var datePart = parts[0];
+var timePart = parts[1];
+var dt = datePart.split(' ');
+var day = parseInt(dt[0],10), mon = dt[1], year = parseInt(dt[2],10);
+var monthMap = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+var monthNum = monthMap[mon];
+var range = timePart.split(' - ');
+var start24 = convertTo24Hour(range[0]);
+var end24 = convertTo24Hour(range[1]);
+var startMin = hmToMinutes(start24.hours, start24.minutes);
+var endMin = hmToMinutes(end24.hours, end24.minutes);
+return {
+y: year, m: monthNum, d: day,
+dateStr: datePart,
+startTimeStr: range[0],
+endTimeStr: range[1],
+startMin: startMin,
+endMin: endMin,
+dateKey: year + '-' + (m<10?'0':'') + monthNum + '-' + (day<10?'0':'') + day
+};
+}
     function convertTo24Hour(timeStr){
       var t=timeStr.trim().split(' ');
       var hm=t[0].split(':'), h=parseInt(hm[0],10), m=parseInt(hm[1],10), p=t[1];
@@ -671,172 +691,209 @@
       }
     }
 
+    function groupByDate(slots){
+var map = {};
+slots.forEach(s => {
+if (!map[s.dateKey]) {
+map[s.dateKey] = { y:s.y, m:s.m, d:s.d, dateStr:s.dateStr, windows: [] };
+}
+map[s.dateKey].windows.push({ startMin: s.startMin, endMin: s.endMin, startStr: s.startTimeStr, endStr: s.endTimeStr });
+});
+return map;
+}
+
+
+function windowsToText(windows){
+return windows.map(w => {
+var s = minutesToHM(w.startMin), e = minutesToHM(w.endMin);
+return t12fmt(s.hour, s.minute) + ' - ' + t12fmt(e.hour, e.minute);
+}).join(', ');
+}
+
+
+function localDow(y,m,d){
+var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+return days[new Date(y, m-1, d).getDay()];
+}
+
     function displayNormalSlots(slots){
-      const container = document.getElementById('timeSlots');
-      container.innerHTML='';
+keys.forEach(key => {
+const dayData = byDate[key];
 
-      if(!slots || !slots.length){
-        container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
-        return;
-      }
 
-      selectedSlot = null;
+const card = document.createElement('div');
+card.className = 'time-slot';
 
-      for (let i = 0; i < slots.length; i++) {
-        const s = slots[i];
 
-        const card = document.createElement('div');
-        card.className = 'time-slot';
+const header = document.createElement('div');
+header.className = 'date';
+header.textContent = localDow(dayData.y, dayData.m, dayData.d) + ' ' + dayData.dateStr;
 
-        const header = document.createElement('div');
-        header.className = 'date';
-        header.textContent = `${dowForYMD(s.y, s.m, s.d)} ${s.dateStr}`;
 
-        const sub = document.createElement('div');
-        sub.className = 'range';
-        sub.textContent = `Available: ${s.startTimeStr} - ${s.endTimeStr}`;
+const sub = document.createElement('div');
+sub.className = 'range';
+sub.textContent = 'Available: ' + windowsToText(dayData.windows);
 
-        const grid = document.createElement('div');
-        grid.className = 'slot-grid';
 
-        // Generate 20-minute slots
-        const start24 = convertTo24Hour(s.startTimeStr);
-        const end24 = convertTo24Hour(s.endTimeStr);
-        const startMin = hmToMinutes(start24.hours, start24.minutes);
-        const endMin = hmToMinutes(end24.hours, end24.minutes);
+const grid = document.createElement('div');
+grid.className = 'slot-grid';
 
-        for (let m = startMin; m + CONFIG.SLOT_MINUTES <= endMin; m += CONFIG.SLOT_MINUTES) {
-          const startHM = minutesToHM(m);
-          const endHM = minutesToHM(m + CONFIG.SLOT_MINUTES);
-          
-          const chipEl = document.createElement('div');
-          chipEl.className = 'slot-chip';
-          chipEl.setAttribute('role','button');
-          chipEl.setAttribute('tabindex','0');
-          chipEl.textContent = t12fmt(startHM.hour, startHM.minute) + '–' + t12fmt(endHM.hour, endHM.minute);
 
-          chipEl.addEventListener('click', () => {
-            document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
-            chipEl.classList.add('selected');
+// Generate 20-min chips across ALL windows for the day
+const emittedStarts = new Set(); // avoid duplicates if windows overlap
 
-            selectedSlot = {
-              y: s.y, 
-              m: s.m, 
-              d: s.d,
-              dateStr: s.dateStr,
-              start: { hour: startHM.hour, minute: startHM.minute },
-              durationMinutes: CONFIG.SLOT_MINUTES,
-              display: chipEl.textContent,
-              mode: 'normal'
-            };
 
-            console.log('[SELECTED Normal]', selectedSlot);
-          });
+dayData.windows.forEach(w => {
+for (let m = w.startMin; m + CONFIG.SLOT_MINUTES <= w.endMin; m += CONFIG.SLOT_MINUTES) {
+if (emittedStarts.has(m)) continue;
+emittedStarts.add(m);
+const startHM = minutesToHM(m);
+const endHM = minutesToHM(m + CONFIG.SLOT_MINUTES);
 
-          chipEl.addEventListener('keydown', (ev) => {
-            if (ev.key === 'Enter' || ev.key === ' ') { 
-              ev.preventDefault(); 
-              chipEl.click(); 
-            }
-          });
 
-          grid.appendChild(chipEl);
-        }
+const chipEl = document.createElement('div');
+chipEl.className = 'slot-chip';
+chipEl.setAttribute('role','button');
+chipEl.setAttribute('tabindex','0');
+chipEl.textContent = t12fmt(startHM.hour, startHM.minute) + '–' + t12fmt(endHM.hour, endHM.minute);
 
-        card.appendChild(header);
-        card.appendChild(sub);
-        card.appendChild(grid);
-        container.appendChild(card);
-      }
-    }
 
+chipEl.addEventListener('click', () => {
+document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
+chipEl.classList.add('selected');
+
+
+selectedSlot = {
+y: dayData.y, m: dayData.m, d: dayData.d,
+dateStr: dayData.dateStr,
+start: { hour: startHM.hour, minute: startHM.minute },
+durationMinutes: CONFIG.SLOT_MINUTES,
+display: chipEl.textContent,
+mode: 'normal'
+};
+
+
+console.log('[SELECTED Normal]', selectedSlot);
+});
+
+
+chipEl.addEventListener('keydown', (ev) => {
+if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); chipEl.click(); }
+});
+
+
+grid.appendChild(chipEl);
+}
+});
+
+
+// If no 20-min chips emitted for the day (e.g., 9-minute window), show a friendly note
+if (grid.children.length === 0) {
+const emptyMsg = document.createElement('div');
+emptyMsg.style.color = 'var(--gray-medium)';
+emptyMsg.textContent = 'No 20-minute slots within today\'s windows.';
+grid.appendChild(emptyMsg);
+}
+
+
+card.appendChild(header);
+card.appendChild(sub);
+card.appendChild(grid);
+container.appendChild(card);
+});
+}
     function displayHouseholdSlots(slots){
-      const container = document.getElementById('timeSlots');
-      container.innerHTML='';
+selectedSlot = null;
 
-      if(!slots || !slots.length){
-        container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
-        return;
-      }
 
-      selectedSlot = null;
+const byDate = groupByDate(slots);
+const keys = Object.keys(byDate).sort();
 
-      for (let i = 0; i < slots.length; i++) {
-        const s = slots[i];
 
-        const card = document.createElement('div');
-        card.className = 'time-slot';
+keys.forEach(key => {
+const dayData = byDate[key];
 
-        const header = document.createElement('div');
-        header.className = 'date';
-        header.textContent = `${dowForYMD(s.y, s.m, s.d)} ${s.dateStr}`;
 
-        const sub = document.createElement('div');
-        sub.className = 'range';
-        sub.textContent = `Available window: ${s.startTimeStr} - ${s.endTimeStr}`;
+const card = document.createElement('div');
+card.className = 'time-slot';
 
-        const grid = document.createElement('div');
-        grid.className = 'slot-grid';
 
-        // Check if we can fit a 3-hour block
-        const start24 = convertTo24Hour(s.startTimeStr);
-        const end24 = convertTo24Hour(s.endTimeStr);
-        const startMin = hmToMinutes(start24.hours, start24.minutes);
-        const endMin = hmToMinutes(end24.hours, end24.minutes);
-        const windowDuration = endMin - startMin;
+const header = document.createElement('div');
+header.className = 'date';
+header.textContent = localDow(dayData.y, dayData.m, dayData.d) + ' ' + dayData.dateStr;
 
-        if (windowDuration >= CONFIG.SIBLING_BLOCK_MINUTES) {
-          // Generate start times for 3-hour blocks
-          for (let m = startMin; m + CONFIG.SIBLING_BLOCK_MINUTES <= endMin; m += CONFIG.SLOT_MINUTES) {
-            const startHM = minutesToHM(m);
-            
-            const chipEl = document.createElement('div');
-            chipEl.className = 'slot-chip';
-            chipEl.setAttribute('role','button');
-            chipEl.setAttribute('tabindex','0');
-            chipEl.textContent = t12fmt(startHM.hour, startHM.minute); // Only show start time
 
-            chipEl.addEventListener('click', () => {
-              document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
-              chipEl.classList.add('selected');
+const sub = document.createElement('div');
+sub.className = 'range';
+sub.textContent = 'Available window(s): ' + windowsToText(dayData.windows);
 
-              selectedSlot = {
-                y: s.y, 
-                m: s.m, 
-                d: s.d,
-                dateStr: s.dateStr,
-                start: { hour: startHM.hour, minute: startHM.minute },
-                durationMinutes: CONFIG.SIBLING_BLOCK_MINUTES,
-                display: chipEl.textContent + ' (3-hour block)',
-                mode: 'household'
-              };
 
-              console.log('[SELECTED Household]', selectedSlot);
-            });
+const grid = document.createElement('div');
+grid.className = 'slot-grid';
 
-            chipEl.addEventListener('keydown', (ev) => {
-              if (ev.key === 'Enter' || ev.key === ' ') { 
-                ev.preventDefault(); 
-                chipEl.click(); 
-              }
-            });
 
-            grid.appendChild(chipEl);
-          }
-        } else {
-          const emptyMsg = document.createElement('div');
-          emptyMsg.style.color = 'var(--gray-medium)';
-          emptyMsg.textContent = 'Window too short for 3-hour blocks';
-          grid.appendChild(emptyMsg);
-        }
+const emittedStarts = new Set();
+const need = CONFIG.SIBLING_BLOCK_MINUTES; // 180
 
-        card.appendChild(header);
-        card.appendChild(sub);
-        card.appendChild(grid);
-        container.appendChild(card);
-      }
-    }
 
+dayData.windows.forEach(w => {
+if ((w.endMin - w.startMin) < need) return; // window too short, skip
+for (let m = w.startMin; m + need <= w.endMin; m += CONFIG.SLOT_MINUTES) {
+if (emittedStarts.has(m)) continue;
+emittedStarts.add(m);
+const startHM = minutesToHM(m);
+
+
+const chipEl = document.createElement('div');
+chipEl.className = 'slot-chip';
+chipEl.setAttribute('role','button');
+chipEl.setAttribute('tabindex','0');
+chipEl.textContent = t12fmt(startHM.hour, startHM.minute); // start only (3h implied)
+
+
+chipEl.addEventListener('click', () => {
+document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
+chipEl.classList.add('selected');
+
+
+selectedSlot = {
+y: dayData.y, m: dayData.m, d: dayData.d,
+dateStr: dayData.dateStr,
+start: { hour: startHM.hour, minute: startHM.minute },
+durationMinutes: CONFIG.SIBLING_BLOCK_MINUTES,
+display: chipEl.textContent + ' (3-hour block)',
+mode: 'household'
+};
+
+
+console.log('[SELECTED Household]', selectedSlot);
+});
+
+
+chipEl.addEventListener('keydown', (ev) => {
+if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); chipEl.click(); }
+});
+
+
+grid.appendChild(chipEl);
+}
+});
+
+
+if (grid.children.length === 0) {
+const emptyMsg = document.createElement('div');
+emptyMsg.style.color = 'var(--gray-medium)';
+emptyMsg.textContent = 'No 3-hour start times fit within today\'s windows.';
+grid.appendChild(emptyMsg);
+}
+
+
+card.appendChild(header);
+card.appendChild(sub);
+card.appendChild(grid);
+container.appendChild(card);
+});
+}
     function humanTimeDisplayYMD(y,m,d,start,end){
       var mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       function p2(n){return (n<10?'0':'')+n;}
