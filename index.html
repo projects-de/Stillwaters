@@ -347,6 +347,23 @@
     .header{ padding: 28px 22px; }
     .form-container{ padding: 22px; }
   }
+  /* --- Confirmation card --- */
+.confirm-card{
+  display:none;
+  background: color-mix(in oklab, var(--success) 10%, #fff);
+  border: 1.5px solid color-mix(in oklab, var(--success) 30%, #fff);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  margin: 16px 0;
+}
+.confirm-card.visible{ display:block; }
+.confirm-card h3{ font-size:1.15rem; font-weight:800; margin-bottom:8px; color:#065f46; }
+.confirm-row{ display:flex; gap:10px; align-items:flex-start; margin:6px 0; color:#064e3b; }
+.confirm-row b{ min-width:130px; display:inline-block; color:#065f46; }
+.confirm-actions{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+.confirm-actions .btn{ padding:10px 16px; font-size:.95rem; }
+
 </style>
 
 </head>
@@ -365,6 +382,23 @@
     <form id="bookingForm" class="form-container" novalidate>
       <div id="successMessage" class="success-message">Appointment booked successfully! You'll receive a confirmation soon.</div>
       <div id="errorMessage" class="error-message">There was an error booking your appointment. Please try again.</div>
+      
+      <div id="confirmationCard" class="confirm-card" aria-live="polite">
+  <h3>You're booked! 🎉</h3>
+  <div class="confirm-row"><b>Date & time</b><span id="confWhen">—</span></div>
+  <div class="confirm-row"><b>Counselor</b><span id="confCounselor">—</span></div>
+  <div class="confirm-row" id="confTeleRow" style="display:none;"><b>Telehealth</b>
+    <span><a id="confTeleLink" href="#" target="_blank" rel="noopener">Join video session</a></span>
+  </div>
+  <div class="confirm-row" id="confInPersonRow" style="display:none;"><b>Visit info</b>
+    <span id="confVisitText">We’ll send directions and arrival details via email/text.</span>
+  </div>
+  <div class="confirm-actions">
+    <a id="confOutlookLink" class="btn btn-secondary" href="#" target="_blank" rel="noopener">Open in Outlook</a>
+    <button id="confBookAnother" type="button" class="btn btn-primary">Book another</button>
+  </div>
+</div>
+
 
       <div class="form-section">
         <h2>Client Information</h2>
@@ -550,7 +584,7 @@
   <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-content">
       <div class="spinner"></div>
-      <p>Processing your request...</p>
+      <p id="overlayMessage">Processing your request...</p>
     </div>
   </div>
 
@@ -1309,71 +1343,120 @@ return days[new Date(y, m-1, d).getDay()];
   return true;
 }
 
+function showConfirmation(opts){
+  // opts: { whenText, counselor, isTele, teleUrl, inPersonText, webLink }
+  const card = document.getElementById('confirmationCard');
+  document.getElementById('confWhen').textContent = opts.whenText || '—';
+  document.getElementById('confCounselor').textContent = opts.counselor || 'Assigned counselor';
+
+  const teleRow = document.getElementById('confTeleRow');
+  const inRow   = document.getElementById('confInPersonRow');
+
+  if (opts.isTele){
+    teleRow.style.display = '';
+    inRow.style.display = 'none';
+    const a = document.getElementById('confTeleLink');
+    if (opts.teleUrl){
+      a.href = opts.teleUrl;
+      a.textContent = 'Join video session';
+    } else {
+      // Fallback: no join URL on the event yet
+      a.removeAttribute('href');
+      a.textContent = 'We\'ll send your secure video link shortly';
+    }
+  } else {
+    teleRow.style.display = 'none';
+    inRow.style.display = '';
+    document.getElementById('confVisitText').textContent =
+      opts.inPersonText || 'We’ll send directions and arrival details via email/text.';
+  }
+
+  const ol = document.getElementById('confOutlookLink');
+  if (opts.webLink){ ol.href = opts.webLink; } else { ol.removeAttribute('href'); }
+
+  card.classList.add('visible');
+  // Scroll into view for mobile
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function friendlyWhenFromSelected(){
+  // Uses the already-picked slot (avoids any timezone ambiguity)
+  const st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
+  const endHM = addMinutesToHM(st.hour, st.minute, selectedSlot.durationMinutes);
+  return humanTimeDisplayYMD(selectedSlot.y, selectedSlot.m, selectedSlot.d, st, endHM);
+}
+
+
     async function handleSubmit(e){
   e.preventDefault();
   if(!validateForm()) return;
 
-  var btn=document.getElementById('submitBtn'), spin=document.getElementById('submitSpinner');
-  btn.disabled=true; 
+  const btn=document.getElementById('submitBtn');
+  const spin=document.getElementById('submitSpinner');
+  const overlay=document.getElementById('loadingOverlay');
+  const overlayMsg=document.getElementById('overlayMessage');
+
+  // Button spinner + overlay
+  btn.disabled=true;
   spin.classList.remove('hidden');
+  const prevOverlayText = overlayMsg.textContent;
+  overlayMsg.textContent = 'Submitting your booking…';
+  overlay.classList.add('active');
+
+  // Hide any previous confirmation card
+  document.getElementById('confirmationCard')?.classList.remove('visible');
 
   try{
-    var form=new FormData(e.target);
-    var first=String(form.get('firstName')||'').trim(),
-        last =String(form.get('lastName')||'').trim(),
-        email=String(form.get('email')||'').trim(),
-        phone=String(form.get('phone')||'').trim(),
-        apptType=String(form.get('appointmentType')||'').trim();
-        
-    var dob = String(form.get('dob') || '').trim();
-    var over18Choice = String(form.get('over18') || '').trim(); // 'yes' | 'no'
-    var guardianName = String(form.get('guardianName') || '').trim();
-    var guardianPhone = String(form.get('guardianPhone') || '').trim();
-    var guardianEmail = String(form.get('guardianEmail') || '').trim();
+    const form=new FormData(e.target);
+    const first=String(form.get('firstName')||'').trim(),
+          last =String(form.get('lastName')||'').trim(),
+          email=String(form.get('email')||'').trim(),
+          phone=String(form.get('phone')||'').trim(),
+          apptType=String(form.get('appointmentType')||'').trim();
 
-    var st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
-    var duration = selectedSlot.durationMinutes;
-    var endHM = addMinutesToHM(st.hour, st.minute, duration);
+    const dob = String(form.get('dob') || '').trim();
+    const over18Choice = String(form.get('over18') || '').trim(); // 'yes' | 'no'
+    const guardianName = String(form.get('guardianName') || '').trim();
+    const guardianPhone = String(form.get('guardianPhone') || '').trim();
+    const guardianEmail = String(form.get('guardianEmail') || '').trim();
 
-    // Build dateTime strings
-    var startDT = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, st.hour, st.minute);
-    var endDT   = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, endHM.hour, endHM.minute);
+    const st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
+    const duration = selectedSlot.durationMinutes;
+    const endHM = addMinutesToHM(st.hour, st.minute, duration);
 
-    // Friendly label for body text
-    var apptTypeLabel = (apptType === 'telehealth' ? 'telehealth' : 'in-person');
+    const startDT = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, st.hour, st.minute);
+    const endDT   = ymdhms(selectedSlot.y, selectedSlot.m, selectedSlot.d, endHM.hour, endHM.minute);
 
-    var subjectBase = (apptType==='telehealth'?'Telehealth':'In-person')+' appointment';
+    const apptTypeLabel = (apptType === 'telehealth' ? 'telehealth' : 'in-person');
+
+    let subjectBase = (apptType==='telehealth'?'Telehealth':'In-person')+' appointment';
     if (isSiblingFlow()) subjectBase = 'Household intake (3-hour block)';
 
-    var body='Appointment scheduled for '+apptTypeLabel+' with '+first+' '+last+' on '
+    let body='Appointment scheduled for '+apptTypeLabel+' with '+first+' '+last+' on '
            + humanTimeDisplayYMD(selectedSlot.y, selectedSlot.m, selectedSlot.d, st, endHM)
            + '. Contact: '+phone+'.';
 
-    var alt=String(form.get('alternateAvailability')||''),
-        notes=String(form.get('additionalNotes')||'');
+    const alt=String(form.get('alternateAvailability')||''),
+          notes=String(form.get('additionalNotes')||'');
 
     if(alt)  body+=' Alternate availability: '+alt+'.';
     if(notes)body+=' Additional notes: '+notes+'.';
     body += ' Date of Birth: ' + dob + '.';
     body += ' Over 18: ' + (over18Choice === 'yes' ? 'Yes' : 'No') + '.';
 
-    // Build household payload if needed
-    var householdPayload = null;
+    // Household payload (as you already had)
+    let householdPayload = null;
     if (isSiblingFlow()) {
-      var siblings = collectSiblingsPayload();
-      var anyUnder18 = siblings.some(s => s.under18);
-      var same = document.getElementById('householdGuardianSame').checked;
+      const siblings = collectSiblingsPayload();
+      const anyUnder18 = siblings.some(s => s.under18);
+      const same = document.getElementById('householdGuardianSame').checked;
 
-      // Work out the guardian used for minors (if any)
-      var hGuardian = null; // {name, phone, email} or null
+      let hGuardian = null;
       if (anyUnder18){
         if (same){
-          // Use main guardian (safe because validateForm ensures it's present only when main is under 18)
           hGuardian = (over18Choice === 'no') ? {
-            name: guardianName,
-            phone: guardianPhone,
-            email: guardianEmail
-          } : null; // shouldn't happen due to validation
+            name: guardianName, phone: guardianPhone, email: guardianEmail
+          } : null;
         } else {
           hGuardian = {
             name:  (document.getElementById('householdGuardianName').value||'').trim(),
@@ -1383,9 +1466,8 @@ return days[new Date(y, m-1, d).getDay()];
         }
       }
 
-      // Replicate guardian info to each under-18 sibling (backend gets full per-sibling details)
-      var siblingsForPayload = siblings.map(s => {
-        var row = { name: s.name, under18: s.under18 };
+      const siblingsForPayload = siblings.map(s => {
+        const row = { name: s.name, under18: s.under18 };
         if (s.under18){
           row.guardianSame = same;
           row.guardian = hGuardian ? { ...hGuardian } : null;
@@ -1396,14 +1478,13 @@ return days[new Date(y, m-1, d).getDay()];
       householdPayload = { 
         hasSiblings: true, 
         householdBlockMinutes: duration,
-        under18Guardian: { sameAsMain: same, details: hGuardian }, // household-level convenience
+        under18Guardian: { sameAsMain: same, details: hGuardian },
         siblings: siblingsForPayload
       };
 
-      // Body text: list siblings and show under-18 guardian summary
-      body += ' Household members: ' + siblings.map(s => {
-        return s.name + ' [' + (s.under18 ? 'Under 18' : '18+') + ']';
-      }).join('; ') + '.';
+      body += ' Household members: ' + siblings.map(s => (
+        s.name + ' [' + (s.under18 ? 'Under 18' : '18+') + ']'
+      )).join('; ') + '.';
 
       if (anyUnder18){
         if (same && hGuardian){
@@ -1417,7 +1498,6 @@ return days[new Date(y, m-1, d).getDay()];
         }
       }
     } else {
-      // Individual: include main guardian only if main is under 18
       if (over18Choice === 'no') {
         body += ' Guardian: ' + guardianName +
                 ' (Phone: ' + guardianPhone +
@@ -1425,7 +1505,7 @@ return days[new Date(y, m-1, d).getDay()];
       }
     }
 
-    var payload={
+    const payload={
       subject: subjectBase,
       body: body,
       start: { dateTime: startDT, timeZone: CONFIG.TIMEZONE },
@@ -1438,39 +1518,73 @@ return days[new Date(y, m-1, d).getDay()];
       dob: dob,
       over18: over18Choice,
       guardian: over18Choice === 'no' ? {
-        name: guardianName,
-        phone: guardianPhone,
-        email: guardianEmail
+        name: guardianName, phone: guardianPhone, email: guardianEmail
       } : null,
       household: householdPayload
     };
 
     console.log('[BOOK payload]', payload);
 
-    var url=withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY);
-    var resp=await fetch(url,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body: JSON.stringify(payload)
-    });
+    const url=withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY);
+    const resp=await fetch(url,{ method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(payload) });
 
     if(!resp.ok){
-      var t=''; 
-      try{ t=await resp.text(); }catch(_){}
+      let t=''; try{ t=await resp.text(); }catch(_){}
       throw new Error('Failed to book ('+resp.status+') '+t);
     }
 
+    const result = await resp.json(); // get data for confirmation
+
+    // Success banner
     showSuccess();
-    setTimeout(clearForm, 1500);
+
+    // Build confirmation details
+    const whenText = friendlyWhenFromSelected();
+    const counselor =
+      (result?.raw?.organizer?.emailAddress?.name) ||
+      (result?.raw?.organizer?.emailAddress?.address) ||
+      'Assigned counselor';
+
+    const teleUrl =
+      (result?.raw?.onlineMeeting?.joinUrl) ||
+      (result?.raw?.onlineMeetingUrl) ||
+      null;
+
+    const isTele = (payload.location?.displayName === 'video') || !!teleUrl;
+    const inPersonText = (result?.location?.displayName && result.location.displayName !== 'video')
+      ? `Location: ${result.location.displayName}. We’ll send directions and arrival details.`
+      : 'We’ll send directions and arrival details via email/text.';
+
+    showConfirmation({
+      whenText,
+      counselor,
+      isTele,
+      teleUrl,
+      inPersonText,
+      webLink: result?.webLink || null
+    });
+
+    // “Book another” resets the form and hides the card
+    document.getElementById('confBookAnother').onclick = function(){
+      clearForm();
+      document.getElementById('confirmationCard').classList.remove('visible');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
   }catch(err){
     console.error(err);
     showError('There was an error booking your appointment. Please try again or call us directly.');
-  }
-  finally{
-    btn.disabled=false; 
+  }finally{
+    // Restore UI
+    btn.disabled=false;
     spin.classList.add('hidden');
+    const overlay=document.getElementById('loadingOverlay');
+    const overlayMsg=document.getElementById('overlayMessage');
+    overlay.classList.remove('active');
+    overlayMsg.textContent = 'Processing your request...'; // reset for next time
   }
 }
+
 
     function clearForm(){
       document.getElementById('bookingForm').reset();
