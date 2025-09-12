@@ -603,29 +603,46 @@ if (ge) ge.required = req;
     }
 
     function parseSlotString(slotStr){
-// Example: "12 Sep 2025, 12:31 PM - 12:40 PM"
-var parts = slotStr.split(', ');
-var datePart = parts[0];
-var timePart = parts[1];
-var dt = datePart.split(' ');
-var day = parseInt(dt[0],10), mon = dt[1], year = parseInt(dt[2],10);
-var monthMap = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
-var monthNum = monthMap[mon];
-var range = timePart.split(' - ');
-var start24 = convertTo24Hour(range[0]);
-var end24 = convertTo24Hour(range[1]);
-var startMin = hmToMinutes(start24.hours, start24.minutes);
-var endMin = hmToMinutes(end24.hours, end24.minutes);
-return {
-y: year, m: monthNum, d: day,
-dateStr: datePart,
-startTimeStr: range[0],
-endTimeStr: range[1],
-startMin: startMin,
-endMin: endMin,
-dateKey: year + '-' + (m<10?'0':'') + monthNum + '-' + (day<10?'0':'') + day
-};
+  // Example: "12 Sep 2025, 02:18 PM - 02:40 PM"
+  const parts = slotStr.split(', ');
+  if (parts.length < 2) {
+    throw new Error('Unexpected slot format: ' + slotStr);
+  }
+
+  const datePart = parts[0];             // "12 Sep 2025"
+  const timePart = parts[1];             // "02:18 PM - 02:40 PM"
+
+  const [dayStr, monStr, yearStr] = datePart.split(' ');
+  const day = parseInt(dayStr, 10);
+  const year = parseInt(yearStr, 10);
+
+  const monthMap = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+  const monthNum = monthMap[monStr];     // <-- use this, not a non-existent 'm'
+  if (!monthNum) {
+    throw new Error('Unknown month in slot: ' + slotStr);
+  }
+
+  const [startStr, endStr] = timePart.split(' - '); // ["02:18 PM","02:40 PM"]
+  const start24 = convertTo24Hour(startStr);
+  const end24   = convertTo24Hour(endStr);
+
+  const startMin = hmToMinutes(start24.hours, start24.minutes);
+  const endMin   = hmToMinutes(end24.hours,   end24.minutes);
+
+  const mm = monthNum < 10 ? '0' + monthNum : '' + monthNum;
+  const dd = day      < 10 ? '0' + day      : '' + day;
+
+  return {
+    y: year, m: monthNum, d: day,
+    dateStr: datePart,
+    startTimeStr: startStr,
+    endTimeStr: endStr,
+    startMin,
+    endMin,
+    dateKey: `${year}-${mm}-${dd}`
+  };
 }
+
     function convertTo24Hour(timeStr){
       var t=timeStr.trim().split(' ');
       var hm=t[0].split(':'), h=parseInt(hm[0],10), m=parseInt(hm[1],10), p=t[1];
