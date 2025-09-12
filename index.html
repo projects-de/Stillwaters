@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Still Waters Counseling - Book Your Appointment</title>
-  <!-- Single-file build | v2025-09-12_siblings-fixed | 3-hour blocks for households -->
+  <!-- Single-file build | v2025-09-12_dual-load-buttons | Separate slot loading for individuals vs households -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -96,12 +96,20 @@
     .success-message { background: var(--success-color); color: var(--white); padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; display: none; animation: slideDown 0.5s ease-out; }
     .error-message { background: var(--danger-color); color: var(--white); padding: 15px; border-radius: 10px; text-align: center; margin: 20px 0; display: none; }
 
-    .sibling-card { border:2px solid var(--gray-light); border-radius:12px; padding:15px; margin-bottom:12px; background:var(--light-bg); }
-    .sibling-row { display:grid; grid-template-columns: 1.5fr 0.8fr 1fr; gap:12px; }
-    .sibling-guardian { margin-top:10px; padding:10px; border-radius:10px; background:#fff; border:1px dashed var(--gray-light); }
-    .sibling-remove { margin-top:10px; }
+    .sibling-card { border:2px solid var(--gray-light); border-radius:12px; padding:15px; margin-bottom:12px; background:var(--light-bg); position: relative; }
+    .sibling-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .sibling-title { font-weight: 600; color: var(--gray-dark); }
+    .sibling-row { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom: 12px; }
+    .sibling-guardian-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .sibling-guardian-fields { padding:15px; border-radius:10px; background:#fff; border:2px dashed var(--secondary-color); margin-top: 10px; }
+    .btn-remove { background: var(--danger-color); color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    .btn-remove:hover { background: #e53e3e; }
+    
     .hint { color: var(--gray-medium); margin-bottom: 10px; font-size: 0.95rem; }
     .siblings-notice { background: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+    
+    .slot-buttons-container { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+    .slot-type-label { font-weight: 600; color: var(--gray-dark); margin-right: 10px; }
 
     @media (max-width: 768px) {
       .header h1 { font-size: 2rem; }
@@ -112,6 +120,8 @@
       .btn { width: 100%; }
       .slot-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
       .sibling-row { grid-template-columns: 1fr; }
+      .slot-buttons-container { flex-direction: column; width: 100%; }
+      .slot-buttons-container .btn { width: 100%; }
     }
 
     .loading-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 9999; }
@@ -245,40 +255,15 @@
         </div>
       </div>
 
-      <div id="inPersonDetails" class="form-section hidden">
-        <h2>In-Person Visit Details</h2>
-        <div class="form-group">
-          <label for="address">Service Address <span class="required">*</span></label>
-          <input type="text" id="address" name="address" placeholder="Full street address" />
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="unit">Apartment/Unit Number</label>
-            <input type="text" id="unit" name="unit" placeholder="Apt, Suite, Unit #" />
-          </div>
-          <div class="form-group">
-            <label for="parking">Parking Instructions</label>
-            <input type="text" id="parking" name="parking" placeholder="Where to park" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="entryNotes">Gate/Entry Notes</label>
-          <textarea id="entryNotes" name="entryNotes" placeholder="Gate codes, building access details, etc."></textarea>
-        </div>
-        <div class="form-group">
-          <label for="safetyConsiderations">Safety Considerations</label>
-          <textarea id="safetyConsiderations" name="safetyConsiderations" placeholder="Any safety issues our clinician should know about"></textarea>
-        </div>
-        <div class="checkbox-group">
-          <input type="checkbox" id="arrivalWindow" name="arrivalWindow" />
-          <label for="arrivalWindow">I understand the clinician will arrive within a 10-15 minute window around the start time</label>
-        </div>
-      </div>
-
       <div class="form-section">
         <h2>Select Appointment Time</h2>
         <div class="form-group">
-          <button type="button" class="btn btn-secondary" id="loadSlotsBtn">Load Available Times</button>
+          <div id="normalSlotsSection">
+            <button type="button" class="btn btn-secondary" id="loadSlotsBtn">Load Available Times (20-minute slots)</button>
+          </div>
+          <div id="householdSlotsSection" class="hidden">
+            <button type="button" class="btn btn-secondary" id="loadHouseholdSlotsBtn">Load Available Times (3-hour blocks)</button>
+          </div>
         </div>
         <div id="timeSlots" class="time-slots"></div>
       </div>
@@ -336,9 +321,11 @@
       SIBLING_BLOCK_MINUTES: 180
     };
 
-    // Global selection
+    // Global variables
     var selectedSlot = null;
     var availableSlots = [];
+    var currentSlotMode = 'normal'; // 'normal' or 'household'
+    var siblingCounter = 0;
 
     function withKey(url, key) {
       if (!key) return url;
@@ -359,10 +346,17 @@
     }
 
     function addSiblingRow(){
+      siblingCounter++;
       var list = document.getElementById('siblingsList');
       var div = document.createElement('div');
       div.className = 'sibling-card';
+      div.setAttribute('data-sibling-id', siblingCounter);
+      
       div.innerHTML = `
+        <div class="sibling-header">
+          <span class="sibling-title">Household Member</span>
+          <button type="button" class="btn-remove">Remove</button>
+        </div>
         <div class="sibling-row">
           <div class="form-group">
             <label>Name <span class="required">*</span></label>
@@ -370,64 +364,97 @@
           </div>
           <div class="form-group">
             <label>Age Group <span class="required">*</span></label>
-            <select name="siblingUnder18[]" required>
+            <select name="siblingUnder18[]" class="sibling-age-select" required>
               <option value="no">18 or over</option>
               <option value="yes">Under 18</option>
             </select>
           </div>
-          <div class="form-group">
-            <label>Guardian same as main?</label>
-            <div class="checkbox-group">
-              <input type="checkbox" name="siblingGuardianSame[]" checked />
-              <label>Yes</label>
-            </div>
-          </div>
         </div>
-        <div class="sibling-guardian hidden">
+        <div class="sibling-guardian-toggle">
+          <input type="checkbox" id="siblingGuardianSame_${siblingCounter}" name="siblingGuardianSame[]" class="guardian-same-check" checked />
+          <label for="siblingGuardianSame_${siblingCounter}">Guardian same as main client</label>
+        </div>
+        <div class="sibling-guardian-fields hidden">
           <div class="form-row">
             <div class="form-group">
               <label>Guardian Name <span class="required">*</span></label>
-              <input type="text" name="siblingGuardianName[]" />
+              <input type="text" name="siblingGuardianName[]" class="sib-guardian-name" />
             </div>
             <div class="form-group">
               <label>Guardian Phone <span class="required">*</span></label>
-              <input type="tel" name="siblingGuardianPhone[]" placeholder="123-456-7890" />
+              <input type="tel" name="siblingGuardianPhone[]" class="sib-guardian-phone" placeholder="123-456-7890" />
             </div>
           </div>
           <div class="form-group">
             <label>Guardian Email <span class="required">*</span></label>
-            <input type="email" name="siblingGuardianEmail[]" />
+            <input type="email" name="siblingGuardianEmail[]" class="sib-guardian-email" />
           </div>
         </div>
-        <button type="button" class="btn btn-secondary sibling-remove">Remove</button>
       `;
+      
       list.appendChild(div);
-      applySiblingGuardianRules(div);
+      
+      // Set up event listeners for this card
+      setupSiblingCardListeners(div);
     }
 
-    function applySiblingGuardianRules(card){
-      var under18 = card.querySelector('select[name="siblingUnder18[]"]').value === 'yes';
-      var same = card.querySelector('input[name="siblingGuardianSame[]"]').checked;
-      var box = card.querySelector('.sibling-guardian');
+    function setupSiblingCardListeners(card) {
+      // Age select change
+      var ageSelect = card.querySelector('.sibling-age-select');
+      ageSelect.addEventListener('change', function() {
+        updateSiblingGuardianVisibility(card);
+      });
+      
+      // Guardian same checkbox change
+      var guardianCheck = card.querySelector('.guardian-same-check');
+      guardianCheck.addEventListener('change', function() {
+        updateSiblingGuardianVisibility(card);
+      });
+      
+      // Remove button
+      var removeBtn = card.querySelector('.btn-remove');
+      removeBtn.addEventListener('click', function() {
+        card.remove();
+      });
+      
+      // Phone formatting for guardian phone
+      var guardianPhone = card.querySelector('.sib-guardian-phone');
+      if (guardianPhone) {
+        guardianPhone.addEventListener('input', function(e) {
+          var v = e.target.value.replace(/\D/g,'').slice(0,10);
+          if (v.length>6) e.target.value = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
+          else if (v.length>3) e.target.value = v.slice(0,3)+'-'+v.slice(3);
+          else e.target.value = v;
+        });
+      }
+    }
 
-      if (under18 && !same) {
-        box.classList.remove('hidden');
-        ['siblingGuardianName[]','siblingGuardianPhone[]','siblingGuardianEmail[]'].forEach(n=>{
-          var el = card.querySelector(`[name="${n}"]`); 
-          if (el) el.required = true;
-        });
+    function updateSiblingGuardianVisibility(card) {
+      var ageSelect = card.querySelector('.sibling-age-select');
+      var guardianCheck = card.querySelector('.guardian-same-check');
+      var guardianFields = card.querySelector('.sibling-guardian-fields');
+      
+      var isUnder18 = ageSelect.value === 'yes';
+      var isDifferentGuardian = !guardianCheck.checked;
+      
+      if (isUnder18 && isDifferentGuardian) {
+        guardianFields.classList.remove('hidden');
+        // Make fields required
+        card.querySelector('.sib-guardian-name').required = true;
+        card.querySelector('.sib-guardian-phone').required = true;
+        card.querySelector('.sib-guardian-email').required = true;
       } else {
-        box.classList.add('hidden');
-        ['siblingGuardianName[]','siblingGuardianPhone[]','siblingGuardianEmail[]'].forEach(n=>{
-          var el = card.querySelector(`[name="${n}"]`); 
-          if (el) el.required = false;
-        });
+        guardianFields.classList.add('hidden');
+        // Remove required
+        card.querySelector('.sib-guardian-name').required = false;
+        card.querySelector('.sib-guardian-phone').required = false;
+        card.querySelector('.sib-guardian-email').required = false;
       }
     }
 
     function collectSiblingsPayload(){
       var out = [];
-      document.querySelectorAll('.sibling-card').forEach(card=>{
+      document.querySelectorAll('.sibling-card').forEach(card => {
         var name = (card.querySelector('[name="siblingName[]"]')?.value||'').trim();
         var under18 = (card.querySelector('[name="siblingUnder18[]"]')?.value||'no') === 'yes';
         var guardianSame = card.querySelector('[name="siblingGuardianSame[]"]')?.checked;
@@ -457,46 +484,31 @@
           this.classList.add('selected');
 
           var wrap = document.getElementById('siblingsWrap');
+          var normalSection = document.getElementById('normalSlotsSection');
+          var householdSection = document.getElementById('householdSlotsSection');
+          
           if (val === 'yes') { 
-            wrap.classList.remove('hidden'); 
-            if (!document.querySelector('.sibling-card')) addSiblingRow(); 
-            // Reload slots if already loaded to show 3-hour blocks
-            if (availableSlots.length > 0) {
-              displayAvailableSlots(availableSlots);
-            }
-          }
-          else { 
-            wrap.classList.add('hidden'); 
+            wrap.classList.remove('hidden');
+            normalSection.classList.add('hidden');
+            householdSection.classList.remove('hidden');
+            if (!document.querySelector('.sibling-card')) addSiblingRow();
+            // Clear any loaded slots when switching
+            document.getElementById('timeSlots').innerHTML = '';
+            selectedSlot = null;
+          } else { 
+            wrap.classList.add('hidden');
+            normalSection.classList.remove('hidden');
+            householdSection.classList.add('hidden');
             document.getElementById('siblingsList').innerHTML='';
-            // Reload slots to show 20-minute blocks
-            if (availableSlots.length > 0) {
-              displayAvailableSlots(availableSlots);
-            } 
+            // Clear any loaded slots when switching
+            document.getElementById('timeSlots').innerHTML = '';
+            selectedSlot = null;
           }
         });
       });
 
       // Add sibling button
       document.getElementById('addSiblingBtn')?.addEventListener('click', addSiblingRow);
-
-      // Delegate changes for under18 / guardian-same toggles
-      document.getElementById('siblingsList').addEventListener('change', function(e){
-        var card = e.target.closest('.sibling-card'); 
-        if(!card) return;
-
-        if (e.target.name === 'siblingUnder18[]' || e.target.name === 'siblingGuardianSame[]') {
-          applySiblingGuardianRules(card);
-        }
-      });
-
-      // Delegate remove
-      document.getElementById('siblingsList').addEventListener('click', function(e){
-        if (e.target.classList.contains('sibling-remove')) {
-          e.preventDefault();
-          var card = e.target.closest('.sibling-card');
-          if (card) card.remove();
-        }
-      });
 
       // Handle Over 18 selection
       document.querySelectorAll('.radio-option[data-over18]').forEach(function(card){
@@ -524,7 +536,14 @@
       });
 
       document.getElementById('bookingForm').addEventListener('submit', handleSubmit);
-      document.getElementById('loadSlotsBtn').addEventListener('click', loadAvailableSlots);
+      document.getElementById('loadSlotsBtn').addEventListener('click', function() {
+        currentSlotMode = 'normal';
+        loadAvailableSlots();
+      });
+      document.getElementById('loadHouseholdSlotsBtn').addEventListener('click', function() {
+        currentSlotMode = 'household';
+        loadAvailableSlots();
+      });
       document.getElementById('clearFormBtn').addEventListener('click', clearForm);
 
       // Appointment Type cards
@@ -566,19 +585,9 @@
       for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
       var chosen = document.querySelector('.radio-option[data-type="' + type + '"]');
       if (chosen) chosen.classList.add('selected');
-
-      // Always hide in-person details
-      var inPerson = document.getElementById('inPersonDetails');
-      if (inPerson) inPerson.classList.add('hidden');
-
-      var addr = document.getElementById('address');
-      var arrival = document.getElementById('arrivalWindow');
-      if (addr) addr.required = false;
-      if (arrival) arrival.required = false;
     }
 
     function parseSlotString(slotStr){
-      // slotStr like: "09 Sep 2025, 9:00 AM - 5:00 PM"
       var parts = slotStr.split(', ');
       var datePart = parts[0];
       var timePart = parts[1];
@@ -647,7 +656,12 @@
                   : (Array.isArray(data.freeSlots)? data.freeSlots
                   : (Array.isArray(data.slots)? data.slots : [])));
         availableSlots = list.map(parseSlotString);
-        displayAvailableSlots(availableSlots);
+        
+        if (currentSlotMode === 'household') {
+          displayHouseholdSlots(availableSlots);
+        } else {
+          displayNormalSlots(availableSlots);
+        }
       }catch(e){
         console.error(e);
         showError('Failed to load available appointment times. Please try again.');
@@ -657,7 +671,7 @@
       }
     }
 
-    function displayAvailableSlots(slots){
+    function displayNormalSlots(slots){
       const container = document.getElementById('timeSlots');
       container.innerHTML='';
 
@@ -667,8 +681,6 @@
       }
 
       selectedSlot = null;
-      const isSiblings = isSiblingFlow();
-      const DURATION = isSiblings ? CONFIG.SIBLING_BLOCK_MINUTES : CONFIG.SLOT_MINUTES;
 
       for (let i = 0; i < slots.length; i++) {
         const s = slots[i];
@@ -687,48 +699,102 @@
         const grid = document.createElement('div');
         grid.className = 'slot-grid';
 
-        // Calculate available chips
-        const chips = [];
+        // Generate 20-minute slots
         const start24 = convertTo24Hour(s.startTimeStr);
         const end24 = convertTo24Hour(s.endTimeStr);
         const startMin = hmToMinutes(start24.hours, start24.minutes);
         const endMin = hmToMinutes(end24.hours, end24.minutes);
 
-        if (isSiblings) {
-          // For siblings: show start times for 3-hour blocks
-          for (let m = startMin; m + DURATION <= endMin; m += CONFIG.SLOT_MINUTES) {
-            const startHM = minutesToHM(m);
-            chips.push({
+        for (let m = startMin; m + CONFIG.SLOT_MINUTES <= endMin; m += CONFIG.SLOT_MINUTES) {
+          const startHM = minutesToHM(m);
+          const endHM = minutesToHM(m + CONFIG.SLOT_MINUTES);
+          
+          const chipEl = document.createElement('div');
+          chipEl.className = 'slot-chip';
+          chipEl.setAttribute('role','button');
+          chipEl.setAttribute('tabindex','0');
+          chipEl.textContent = t12fmt(startHM.hour, startHM.minute) + '–' + t12fmt(endHM.hour, endHM.minute);
+
+          chipEl.addEventListener('click', () => {
+            document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
+            chipEl.classList.add('selected');
+
+            selectedSlot = {
+              y: s.y, 
+              m: s.m, 
+              d: s.d,
+              dateStr: s.dateStr,
               start: { hour: startHM.hour, minute: startHM.minute },
-              label: t12fmt(startHM.hour, startHM.minute)
-            });
-          }
-        } else {
-          // For regular: show 20-minute slots with range
-          for (let m = startMin; m + DURATION <= endMin; m += DURATION) {
-            const startHM = minutesToHM(m);
-            const endHM = minutesToHM(m + DURATION);
-            chips.push({
-              start: { hour: startHM.hour, minute: startHM.minute },
-              label: t12fmt(startHM.hour, startHM.minute) + '–' + t12fmt(endHM.hour, endHM.minute)
-            });
-          }
+              durationMinutes: CONFIG.SLOT_MINUTES,
+              display: chipEl.textContent,
+              mode: 'normal'
+            };
+
+            console.log('[SELECTED Normal]', selectedSlot);
+          });
+
+          chipEl.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') { 
+              ev.preventDefault(); 
+              chipEl.click(); 
+            }
+          });
+
+          grid.appendChild(chipEl);
         }
 
-        if (chips.length === 0) {
-          const emptyMsg = document.createElement('div');
-          emptyMsg.style.color = 'var(--gray-medium)';
-          emptyMsg.textContent = isSiblings
-            ? 'No 3-hour blocks available in this window.'
-            : 'No slots available in this window.';
-          grid.appendChild(emptyMsg);
-        } else {
-          chips.forEach((ch) => {
+        card.appendChild(header);
+        card.appendChild(sub);
+        card.appendChild(grid);
+        container.appendChild(card);
+      }
+    }
+
+    function displayHouseholdSlots(slots){
+      const container = document.getElementById('timeSlots');
+      container.innerHTML='';
+
+      if(!slots || !slots.length){
+        container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
+        return;
+      }
+
+      selectedSlot = null;
+
+      for (let i = 0; i < slots.length; i++) {
+        const s = slots[i];
+
+        const card = document.createElement('div');
+        card.className = 'time-slot';
+
+        const header = document.createElement('div');
+        header.className = 'date';
+        header.textContent = `${dowForYMD(s.y, s.m, s.d)} ${s.dateStr}`;
+
+        const sub = document.createElement('div');
+        sub.className = 'range';
+        sub.textContent = `Available window: ${s.startTimeStr} - ${s.endTimeStr}`;
+
+        const grid = document.createElement('div');
+        grid.className = 'slot-grid';
+
+        // Check if we can fit a 3-hour block
+        const start24 = convertTo24Hour(s.startTimeStr);
+        const end24 = convertTo24Hour(s.endTimeStr);
+        const startMin = hmToMinutes(start24.hours, start24.minutes);
+        const endMin = hmToMinutes(end24.hours, end24.minutes);
+        const windowDuration = endMin - startMin;
+
+        if (windowDuration >= CONFIG.SIBLING_BLOCK_MINUTES) {
+          // Generate start times for 3-hour blocks
+          for (let m = startMin; m + CONFIG.SIBLING_BLOCK_MINUTES <= endMin; m += CONFIG.SLOT_MINUTES) {
+            const startHM = minutesToHM(m);
+            
             const chipEl = document.createElement('div');
             chipEl.className = 'slot-chip';
             chipEl.setAttribute('role','button');
             chipEl.setAttribute('tabindex','0');
-            chipEl.textContent = ch.label;
+            chipEl.textContent = t12fmt(startHM.hour, startHM.minute); // Only show start time
 
             chipEl.addEventListener('click', () => {
               document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
@@ -739,12 +805,13 @@
                 m: s.m, 
                 d: s.d,
                 dateStr: s.dateStr,
-                start: { hour: ch.start.hour, minute: ch.start.minute },
-                durationMinutes: DURATION,
-                display: ch.label
+                start: { hour: startHM.hour, minute: startHM.minute },
+                durationMinutes: CONFIG.SIBLING_BLOCK_MINUTES,
+                display: chipEl.textContent + ' (3-hour block)',
+                mode: 'household'
               };
 
-              console.log('[SELECTED]', selectedSlot);
+              console.log('[SELECTED Household]', selectedSlot);
             });
 
             chipEl.addEventListener('keydown', (ev) => {
@@ -755,7 +822,12 @@
             });
 
             grid.appendChild(chipEl);
-          });
+          }
+        } else {
+          const emptyMsg = document.createElement('div');
+          emptyMsg.style.color = 'var(--gray-medium)';
+          emptyMsg.textContent = 'Window too short for 3-hour blocks';
+          grid.appendChild(emptyMsg);
         }
 
         card.appendChild(header);
@@ -856,6 +928,18 @@
             }
           }
         }
+        
+        // Verify they selected a household slot
+        if (selectedSlot && selectedSlot.mode !== 'household') {
+          showError('Please use "Load Available Times (3-hour blocks)" for household appointments.');
+          return false;
+        }
+      } else {
+        // Verify they selected a normal slot
+        if (selectedSlot && selectedSlot.mode === 'household') {
+          showError('Please use "Load Available Times (20-minute slots)" for individual appointments.');
+          return false;
+        }
       }
 
       return true;
@@ -884,7 +968,7 @@
         var guardianEmail = String(form.get('guardianEmail') || '').trim();
 
         var st = { hour: selectedSlot.start.hour, minute: selectedSlot.start.minute };
-        var duration = selectedSlot.durationMinutes || (isSiblingFlow() ? CONFIG.SIBLING_BLOCK_MINUTES : CONFIG.SLOT_MINUTES);
+        var duration = selectedSlot.durationMinutes;
         var endHM = addMinutesToHM(st.hour, st.minute, duration);
 
         // Build dateTime strings
@@ -981,10 +1065,13 @@
       document.getElementById('guardianInfo').classList.add('hidden');
       document.getElementById('siblingsWrap').classList.add('hidden');
       document.getElementById('siblingsList').innerHTML='';
-      document.getElementById('inPersonDetails').classList.add('hidden');
+      document.getElementById('normalSlotsSection').classList.remove('hidden');
+      document.getElementById('householdSlotsSection').classList.add('hidden');
       document.getElementById('timeSlots').innerHTML='';
       selectedSlot=null;
       availableSlots = [];
+      currentSlotMode = 'normal';
+      siblingCounter = 0;
       hideMessages();
       var allChips = document.querySelectorAll('.slot-chip');
       for (var k=0;k<allChips.length;k++) allChips[k].classList.remove('selected');
