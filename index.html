@@ -435,7 +435,7 @@ else e.target.value = v;
 // Initialize state based on defaults
 updateSiblingGuardianVisibility(card);
 }
-    function updateSiblingGuardianVisibility(card) {
+   function updateSiblingGuardianVisibility(card) {
 var ageSelect = card.querySelector('.sibling-age-select');
 var guardianCheck = card.querySelector('.guardian-same-check');
 var guardianFields = card.querySelector('.sibling-guardian-fields');
@@ -603,44 +603,51 @@ if (ge) ge.required = req;
     }
 
     function parseSlotString(slotStr){
-  // Example: "12 Sep 2025, 02:18 PM - 02:40 PM"
-  const parts = slotStr.split(', ');
-  if (parts.length < 2) {
-    throw new Error('Unexpected slot format: ' + slotStr);
-  }
+// Example: "12 Sep 2025, 02:25 PM - 02:40 PM"
+const parts = slotStr.split(', ');
+if (parts.length < 2) {
+throw new Error('Unexpected slot format: ' + slotStr);
+}
 
-  const datePart = parts[0];             // "12 Sep 2025"
-  const timePart = parts[1];             // "02:18 PM - 02:40 PM"
 
-  const [dayStr, monStr, yearStr] = datePart.split(' ');
-  const day = parseInt(dayStr, 10);
-  const year = parseInt(yearStr, 10);
+const datePart = parts[0]; // "12 Sep 2025"
+const timePart = parts[1]; // "02:25 PM - 02:40 PM"
 
-  const monthMap = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
-  const monthNum = monthMap[monStr];     // <-- use this, not a non-existent 'm'
-  if (!monthNum) {
-    throw new Error('Unknown month in slot: ' + slotStr);
-  }
 
-  const [startStr, endStr] = timePart.split(' - '); // ["02:18 PM","02:40 PM"]
-  const start24 = convertTo24Hour(startStr);
-  const end24   = convertTo24Hour(endStr);
+const [dayStr, monStr, yearStr] = datePart.split(' ');
+const day = parseInt(dayStr, 10);
+const year = parseInt(yearStr, 10);
 
-  const startMin = hmToMinutes(start24.hours, start24.minutes);
-  const endMin   = hmToMinutes(end24.hours,   end24.minutes);
 
-  const mm = monthNum < 10 ? '0' + monthNum : '' + monthNum;
-  const dd = day      < 10 ? '0' + day      : '' + day;
+const monthMap = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+const monthNum = monthMap[monStr];
+if (!monthNum) {
+throw new Error('Unknown month in slot: ' + slotStr);
+}
 
-  return {
-    y: year, m: monthNum, d: day,
-    dateStr: datePart,
-    startTimeStr: startStr,
-    endTimeStr: endStr,
-    startMin,
-    endMin,
-    dateKey: `${year}-${mm}-${dd}`
-  };
+
+const [startStr, endStr] = timePart.split(' - '); // ["02:25 PM","02:40 PM"]
+const start24 = convertTo24Hour(startStr);
+const end24 = convertTo24Hour(endStr);
+
+
+const startMin = hmToMinutes(start24.hours, start24.minutes);
+const endMin = hmToMinutes(end24.hours, end24.minutes);
+
+
+const mm = String(monthNum).padStart(2, '0');
+const dd = String(day).padStart(2, '0');
+
+
+return {
+y: year, m: monthNum, d: day,
+dateStr: datePart,
+startTimeStr: startStr,
+endTimeStr: endStr,
+startMin,
+endMin,
+dateKey: `${year}-${mm}-${dd}`
+};
 }
 
     function convertTo24Hour(timeStr){
@@ -709,134 +716,53 @@ if (ge) ge.required = req;
     }
 
     function groupByDate(slots){
-var map = {};
-slots.forEach(s => {
-if (!map[s.dateKey]) {
-map[s.dateKey] = { y:s.y, m:s.m, d:s.d, dateStr:s.dateStr, windows: [] };
+  const map = {};
+  slots.forEach(s => {
+    const key = s.dateKey ?? `${s.y}-${String(s.m).padStart(2,'0')}-${String(s.d).padStart(2,'0')}`;
+    if (!map[key]) {
+      map[key] = { y: s.y, m: s.m, d: s.d, dateStr: s.dateStr, windows: [] };
+    }
+    map[key].windows.push({
+      startMin: s.startMin,
+      endMin: s.endMin,
+      startStr: s.startTimeStr,
+      endStr: s.endTimeStr
+    });
+  });
+  return map;
 }
-map[s.dateKey].windows.push({ startMin: s.startMin, endMin: s.endMin, startStr: s.startTimeStr, endStr: s.endTimeStr });
-});
-return map;
-}
+
 
 
 function windowsToText(windows){
 return windows.map(w => {
-var s = minutesToHM(w.startMin), e = minutesToHM(w.endMin);
+const s = minutesToHM(w.startMin), e = minutesToHM(w.endMin);
 return t12fmt(s.hour, s.minute) + ' - ' + t12fmt(e.hour, e.minute);
 }).join(', ');
 }
 
-
 function localDow(y,m,d){
-var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 return days[new Date(y, m-1, d).getDay()];
 }
 
     function displayNormalSlots(slots){
-keys.forEach(key => {
-const dayData = byDate[key];
-
-
-const card = document.createElement('div');
-card.className = 'time-slot';
-
-
-const header = document.createElement('div');
-header.className = 'date';
-header.textContent = localDow(dayData.y, dayData.m, dayData.d) + ' ' + dayData.dateStr;
-
-
-const sub = document.createElement('div');
-sub.className = 'range';
-sub.textContent = 'Available: ' + windowsToText(dayData.windows);
-
-
-const grid = document.createElement('div');
-grid.className = 'slot-grid';
-
-
-// Generate 20-min chips across ALL windows for the day
-const emittedStarts = new Set(); // avoid duplicates if windows overlap
-
-
-dayData.windows.forEach(w => {
-for (let m = w.startMin; m + CONFIG.SLOT_MINUTES <= w.endMin; m += CONFIG.SLOT_MINUTES) {
-if (emittedStarts.has(m)) continue;
-emittedStarts.add(m);
-const startHM = minutesToHM(m);
-const endHM = minutesToHM(m + CONFIG.SLOT_MINUTES);
-
-
-const chipEl = document.createElement('div');
-chipEl.className = 'slot-chip';
-chipEl.setAttribute('role','button');
-chipEl.setAttribute('tabindex','0');
-chipEl.textContent = t12fmt(startHM.hour, startHM.minute) + '–' + t12fmt(endHM.hour, endHM.minute);
-
-
-chipEl.addEventListener('click', () => {
-document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
-chipEl.classList.add('selected');
-
-
-selectedSlot = {
-y: dayData.y, m: dayData.m, d: dayData.d,
-dateStr: dayData.dateStr,
-start: { hour: startHM.hour, minute: startHM.minute },
-durationMinutes: CONFIG.SLOT_MINUTES,
-display: chipEl.textContent,
-mode: 'normal'
-};
-
-
-console.log('[SELECTED Normal]', selectedSlot);
-});
-
-
-chipEl.addEventListener('keydown', (ev) => {
-if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); chipEl.click(); }
-});
-
-
-grid.appendChild(chipEl);
-}
-});
-
-
-// If no 20-min chips emitted for the day (e.g., 9-minute window), show a friendly note
-if (grid.children.length === 0) {
-const emptyMsg = document.createElement('div');
-emptyMsg.style.color = 'var(--gray-medium)';
-emptyMsg.textContent = 'No 20-minute slots within today\'s windows.';
-grid.appendChild(emptyMsg);
-}
-
-
-card.appendChild(header);
-card.appendChild(sub);
-card.appendChild(grid);
-container.appendChild(card);
-});
-}
-    function displayHouseholdSlots(slots){
-  // 1) target container + clear
   const container = document.getElementById('timeSlots');
   container.innerHTML = '';
 
-  // reset selection
   selectedSlot = null;
 
-  // 2) normalize input — accept raw strings or parsed objects
   if (!slots || !slots.length){
     container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
     return;
   }
-  if (typeof slots[0] === 'string') {
-    slots = slots.map(parseSlotString);
+
+  // Accept raw strings or already-parsed objects
+  if (typeof slots[0] === 'string' || !('startMin' in slots[0])) {
+    try { slots = slots.map(parseSlotString); }
+    catch (e) { console.error(e); container.innerHTML = '<p>Could not parse slots from server.</p>'; return; }
   }
 
-  // 3) group windows per day
   const byDate = groupByDate(slots);
   const keys = Object.keys(byDate).sort();
 
@@ -845,7 +771,96 @@ container.appendChild(card);
     return;
   }
 
-  // 4) render per day
+  keys.forEach(key => {
+    const dayData = byDate[key];
+
+    const card = document.createElement('div');
+    card.className = 'time-slot';
+
+    const header = document.createElement('div');
+    header.className = 'date';
+    header.textContent = localDow(dayData.y, dayData.m, dayData.d) + ' ' + dayData.dateStr;
+
+    const sub = document.createElement('div');
+    sub.className = 'range';
+    sub.textContent = 'Available: ' + windowsToText(dayData.windows);
+
+    const grid = document.createElement('div');
+    grid.className = 'slot-grid';
+
+    const emittedStarts = new Set(); // avoid duplicate chips if windows overlap
+
+    dayData.windows.forEach(w => {
+      for (let m = w.startMin; m + CONFIG.SLOT_MINUTES <= w.endMin; m += CONFIG.SLOT_MINUTES) {
+        if (emittedStarts.has(m)) continue;
+        emittedStarts.add(m);
+
+        const startHM = minutesToHM(m);
+        const endHM   = minutesToHM(m + CONFIG.SLOT_MINUTES);
+
+        const chipEl = document.createElement('div');
+        chipEl.className = 'slot-chip';
+        chipEl.setAttribute('role','button');
+        chipEl.setAttribute('tabindex','0');
+        chipEl.textContent = t12fmt(startHM.hour, startHM.minute) + '–' + t12fmt(endHM.hour, endHM.minute);
+
+        chipEl.addEventListener('click', () => {
+          document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
+          chipEl.classList.add('selected');
+
+          selectedSlot = {
+            y: dayData.y, m: dayData.m, d: dayData.d,
+            dateStr: dayData.dateStr,
+            start: { hour: startHM.hour, minute: startHM.minute },
+            durationMinutes: CONFIG.SLOT_MINUTES,
+            display: chipEl.textContent,
+            mode: 'normal'
+          };
+        });
+
+        chipEl.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); chipEl.click(); }
+        });
+
+        grid.appendChild(chipEl);
+      }
+    });
+
+    if (grid.children.length === 0) {
+      const emptyMsg = document.createElement('div');
+      emptyMsg.style.color = 'var(--gray-medium)';
+      emptyMsg.textContent = "No 20-minute slots within today's windows.";
+      grid.appendChild(emptyMsg);
+    }
+
+    card.appendChild(header);
+    card.appendChild(sub);
+    card.appendChild(grid);
+    container.appendChild(card);
+  });
+}
+
+    function displayHouseholdSlots(slots){
+  const container = document.getElementById('timeSlots');
+  container.innerHTML = '';
+  selectedSlot = null;
+
+  if (!slots || !slots.length){
+    container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
+    return;
+  }
+  if (typeof slots[0] === 'string' || !('startMin' in slots[0])) {
+    try { slots = slots.map(parseSlotString); }
+    catch(e){ console.error(e); container.innerHTML = '<p>Could not parse slots from server.</p>'; return; }
+  }
+
+  const byDate = groupByDate(slots);
+  const keys = Object.keys(byDate).sort();
+  if (!keys.length){
+    container.innerHTML = '<p>No available windows returned by the server.</p>';
+    return;
+  }
+
   keys.forEach(key => {
     const dayData = byDate[key];
 
@@ -867,8 +882,7 @@ container.appendChild(card);
     const need = CONFIG.SIBLING_BLOCK_MINUTES; // 180
 
     dayData.windows.forEach(w => {
-      if ((w.endMin - w.startMin) < need) return; // too short
-
+      if ((w.endMin - w.startMin) < need) return;
       for (let m = w.startMin; m + need <= w.endMin; m += CONFIG.SLOT_MINUTES) {
         if (emittedStarts.has(m)) continue;
         emittedStarts.add(m);
@@ -879,12 +893,11 @@ container.appendChild(card);
         chipEl.className = 'slot-chip';
         chipEl.setAttribute('role','button');
         chipEl.setAttribute('tabindex','0');
-        chipEl.textContent = t12fmt(startHM.hour, startHM.minute); // start only (3h implied)
+        chipEl.textContent = t12fmt(startHM.hour, startHM.minute); // start only
 
         chipEl.addEventListener('click', () => {
           document.querySelectorAll('.slot-chip').forEach(el => el.classList.remove('selected'));
           chipEl.classList.add('selected');
-
           selectedSlot = {
             y: dayData.y, m: dayData.m, d: dayData.d,
             dateStr: dayData.dateStr,
@@ -893,7 +906,6 @@ container.appendChild(card);
             display: chipEl.textContent + ' (3-hour block)',
             mode: 'household'
           };
-          console.log('[SELECTED Household]', selectedSlot);
         });
 
         chipEl.addEventListener('keydown', (ev) => {
