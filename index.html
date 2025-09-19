@@ -485,8 +485,16 @@
 
         <div id="siblingsWrap" class="hidden">
          <div class="siblings-notice">
-  <strong>Important:</strong> All household members will be scheduled in the same 3-hour block. You'll select the start time for the block.
+  <strong>Important:</strong> All household members will be scheduled in the same 3-hour block. If someone is
+already in services and does not need an initial assessment, mark them as <em>No</em> below. You’ll select the start time for the block.
+
 </div>
+
+ <div class="form-group" style="margin:12px 0;">
+   <label for="siblingsCount">How many household members (besides the main client)?</label>
+   <input type="number" id="siblingsCount" name="siblingsCount" min="1" step="1" />
+   <div class="hint">We’ll still ask for each person’s name below.</div>
+ </div>
 
 <div id="siblingsList"></div>
 <button type="button" class="btn btn-secondary" id="addSiblingBtn">+ Add Household Member</button>
@@ -538,7 +546,7 @@
         <h2>Select Appointment Time</h2>
         <div class="form-group">
           <div id="normalSlotsSection">
-            <button type="button" class="btn btn-secondary" id="loadSlotsBtn">Load Available Times (20-minute slots)</button>
+            <button type="button" class="btn btn-secondary" id="loadSlotsBtn">Load Available Times </button>
           </div>
           <div id="householdSlotsSection" class="hidden">
             <button type="button" class="btn btn-secondary" id="loadHouseholdSlotsBtn">Load Available Times (3-hour blocks)</button>
@@ -633,23 +641,31 @@
 
   div.innerHTML = `
     <div class="sibling-header">
-      <span class="sibling-title">Household Member</span>
-      <button type="button" class="btn-remove">Remove</button>
+    <span class="sibling-title">Household Member</span>
+    <button type="button" class="btn-remove">Remove</button>
+  </div>
+  <div class="sibling-row">
+    <div class="form-group">
+      <label>Name <span class="required">*</span></label>
+      <input type="text" name="siblingName[]" required />
     </div>
-    <div class="sibling-row">
-      <div class="form-group">
-        <label>Name <span class="required">*</span></label>
-        <input type="text" name="siblingName[]" required />
-      </div>
-      <div class="form-group">
-        <label>Age Group <span class="required">*</span></label>
-        <select name="siblingUnder18[]" class="sibling-age-select" required>
-          <option value="no">18 or over</option>
-          <option value="yes">Under 18</option>
-        </select>
-      </div>
+    <div class="form-group">
+      <label>Age Group <span class="required">*</span></label>
+      <select name="siblingUnder18[]" class="sibling-age-select" required>
+        <option value="no">18 or over</option>
+        <option value="yes">Under 18</option>
+      </select>
     </div>
-  `;
+  </div>
+  <div class="sibling-row">
+    <div class="form-group">
+      <label>Needs Initial Assessment? <span class="required">*</span></label>
+      <select name="siblingNeedsAssessment[]" required>
+        <option value="yes" selected>Yes</option>
+        <option value="no">No (already in services)</option>
+      </select>
+    </div>
+  </div>  `;
 
   list.appendChild(div);
   div.querySelector('.btn-remove').addEventListener('click', () => div.remove());
@@ -729,7 +745,8 @@ if (ge) ge.required = req;
   document.querySelectorAll('.sibling-card').forEach(card => {
     var name = (card.querySelector('[name="siblingName[]"]')?.value||'').trim();
     var under18 = (card.querySelector('[name="siblingUnder18[]"]')?.value||'no') === 'yes';
-    out.push({ name, under18 });
+     var needsAssessment = (card.querySelector('[name="siblingNeedsAssessment[]"]')?.value||'yes') === 'yes';
+    out.push({ name, under18, needsAssessment });
   });
   return out;
 }
@@ -1114,7 +1131,7 @@ return days[new Date(y, m-1, d).getDay()];
     if (grid.children.length === 0) {
       const emptyMsg = document.createElement('div');
       emptyMsg.style.color = 'var(--gray-medium)';
-      emptyMsg.textContent = "No 20-minute slots within today's windows.";
+      emptyMsg.textContent = "No start times within today's windows.";
       grid.appendChild(emptyMsg);
     }
 
@@ -1335,7 +1352,7 @@ return days[new Date(y, m-1, d).getDay()];
   } else {
     // Individual: ensure normal slot mode is used
     if (selectedSlot && selectedSlot.mode === 'household') {
-      showError('Please use "Load Available Times (20-minute slots)" for individual appointments.');
+      showError('Please use "Load Available Start Times" for individual appointments.');
       return false;
     }
   }
@@ -1448,6 +1465,11 @@ function friendlyWhenFromSelected(){
     let householdPayload = null;
     if (isSiblingFlow()) {
       const siblings = collectSiblingsPayload();
+      const declaredSiblingCount = (() => {
+const raw = document.getElementById('siblingsCount')?.value || '';
+   const n = raw ? parseInt(raw, 10) : siblings.length;
+   return Number.isNaN(n) ? siblings.length : n;
+ })();
       const anyUnder18 = siblings.some(s => s.under18);
       const same = document.getElementById('householdGuardianSame').checked;
 
@@ -1467,7 +1489,7 @@ function friendlyWhenFromSelected(){
       }
 
       const siblingsForPayload = siblings.map(s => {
-        const row = { name: s.name, under18: s.under18 };
+         const row = { name: s.name, under18: s.under18, needsAssessment: s.needsAssessment };
         if (s.under18){
           row.guardianSame = same;
           row.guardian = hGuardian ? { ...hGuardian } : null;
@@ -1478,13 +1500,14 @@ function friendlyWhenFromSelected(){
       householdPayload = { 
         hasSiblings: true, 
         householdBlockMinutes: duration,
+        declaredSiblingCount,
         under18Guardian: { sameAsMain: same, details: hGuardian },
         siblings: siblingsForPayload
       };
 
-      body += ' Household members: ' + siblings.map(s => (
-        s.name + ' [' + (s.under18 ? 'Under 18' : '18+') + ']'
-      )).join('; ') + '.';
+       body += ' Household members: ' + siblings.map(s => (
+   s.name + ' [' + (s.under18 ? 'Under 18' : '18+') + ', Needs initial: ' + (s.needsAssessment ? 'Yes' : 'No') + ']'
+ )).join('; ') + '.';
 
       if (anyUnder18){
         if (same && hGuardian){
