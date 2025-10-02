@@ -561,7 +561,7 @@ const CONFIG = {
   GET_SLOTS_KEY: '',
   BOOK_APPOINTMENT_KEY: '',
   TIMEZONE: 'Central Standard Time',
-  SLOT_MINUTES: 20,               // used for guardian 3-hour stepping; normal flow ignores this now
+  SLOT_MINUTES: 20,
   HOUSEHOLD_BLOCK_MINUTES: 180
 };
 
@@ -641,7 +641,6 @@ function calcAgeFromDOBStr(dobStr){
 
 /* ===== Visual select helper (no CSS needed) ===== */
 function applyChipSelectedStyle(chip, scope){
-  // clear any existing inline styles in this scope
   scope.querySelectorAll('.slot-chip').forEach(el=>{
     el.classList.remove('selected');
     el.style.background=''; el.style.color=''; el.style.borderColor=''; el.style.boxShadow='';
@@ -654,7 +653,7 @@ function applyChipSelectedStyle(chip, scope){
 }
 
 /* ===== Slots UI Builders ===== */
-/* NORMAL (SELF) — one chip per API slot (robust to 15/20-min feeds) */
+/* NORMAL (SELF) — one chip per API slot */
 function displayNormalSlots(slots, containerId, slotKey){
   const container = document.getElementById(containerId);
   container.innerHTML = '';
@@ -663,7 +662,6 @@ function displayNormalSlots(slots, containerId, slotKey){
   if (!slots || !slots.length){
     container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>'; return;
   }
-  // accept raw strings or parsed objects
   if (typeof slots[0] === 'string' || !('startMin' in slots[0])) {
     try { slots = slots.map(parseSlotString); }
     catch { container.innerHTML = '<p>Could not parse slots from server.</p>'; return; }
@@ -690,7 +688,6 @@ function displayNormalSlots(slots, containerId, slotKey){
     const grid = document.createElement('div');
     grid.className = 'slot-grid';
 
-    // Create exactly one chip per returned window
     dayData.windows.forEach(w => {
       const startHM = minutesToHM(w.startMin);
       const endHM   = minutesToHM(w.endMin);
@@ -822,7 +819,6 @@ async function loadAvailableSlots(mode){
               : (Array.isArray(data.free_slots)? data.free_slots
               : (Array.isArray(data.freeSlots)? data.freeSlots
               : (Array.isArray(data.slots)? data.slots : [])));
-    // keep raw strings; display* will parse as needed
     availableSlots = list;
 
     if (mode === 'guardian'){
@@ -928,8 +924,7 @@ function showConfirmation(opts){
   document.getElementById('confCounselor').textContent = opts.counselor || 'Assigned counselor';
   document.getElementById('confTeleRow').style.display = 'none';
   document.getElementById('confInPersonRow').style.display = '';
-  const ol = document.getElementById('confOutlookLink');
-  if (ol) { if (opts.webLink) { ol.href = opts.webLink; ol.removeAttribute('aria-disabled'); } else { ol.removeAttribute('href'); ol.setAttribute('aria-disabled','true'); } }
+  // Outlook button removed entirely per request (also removed on DOMContentLoaded)
   card.classList.add('visible');
   card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -976,7 +971,7 @@ async function handleSubmit(e){
         end:   { dateTime: endDT,   timeZone: CONFIG.TIMEZONE },
         expectedDate: `${selectedSlot.self.y}-${p2(selectedSlot.self.m)}-${p2(selectedSlot.self.d)}`,
         location: { displayName: appt==='home' ? 'in-person-home' : 'in-person-office' },
-        attendees: [{ address: email, name: `${first} ${last}`, type:'required' }],
+      attendees: [{ address: email, name: `${first} ${last}`, type:'required' }],
         allowNewTimeProposals: true,
         transactionId: generateUUID(),
         dob, over18: 'yes', guardian: null, household: null
@@ -991,10 +986,13 @@ async function handleSubmit(e){
         throw new Error(`Booking failed (${resp.status}) ${result.error || ''}`);
       }
 
-      showSuccess();
+      // compute details BEFORE clearing
       const whenText = humanTimeDisplayYMD(selectedSlot.self.y, selectedSlot.self.m, selectedSlot.self.d, st, endHM);
       const counselor = (result?.raw?.organizer?.emailAddress?.name) || (result?.raw?.organizer?.emailAddress?.address) || 'Assigned counselor';
-      showConfirmation({ whenText, counselor, webLink: result?.webLink || null });
+
+      showSuccess();
+      clearForm();                 // ✅ clear the form immediately after success
+      showConfirmation({ whenText, counselor }); // show confirmation card
 
     } else {
       if (!validateGuardianFlow()) return;
@@ -1051,10 +1049,12 @@ async function handleSubmit(e){
         throw new Error(`Booking failed (${resp.status}) ${result.error || ''}`);
       }
 
-      showSuccess();
       const whenText = humanTimeDisplayYMD(selectedSlot.guardian.y, selectedSlot.guardian.m, selectedSlot.guardian.d, st, endHM);
       const counselor = (result?.raw?.organizer?.emailAddress?.name) || (result?.raw?.organizer?.emailAddress?.address) || 'Assigned counselor';
-      showConfirmation({ whenText, counselor, webLink: result?.webLink || null });
+
+      showSuccess();
+      clearForm();                 // ✅ clear immediately after success
+      showConfirmation({ whenText, counselor });
     }
   }catch(err){
     console.error(err);
@@ -1065,16 +1065,39 @@ async function handleSubmit(e){
 /* ===== Clear ===== */
 function clearForm(){
   const form = document.getElementById('bookingForm'); if (form) form.reset();
+
   selectedSlot.self = null; selectedSlot.guardian = null;
+
   const tsSelf = document.getElementById('timeSlotsSelf'); if (tsSelf) tsSelf.innerHTML = '';
   const tsG = document.getElementById('timeSlotsGuardian'); if (tsG) tsG.innerHTML = '';
+
+  // Reset individuals list to a single blank card
   const list = document.getElementById('individualsList');
-  if (list){ list.innerHTML = ''; addIndividualCard(); }
+  if (list){
+    list.innerHTML = '';
+    addIndividualCard();
+  }
+
+  // Clear any chip visual states
+  document.querySelectorAll('.slot-chip').forEach(el=>{
+    el.classList.remove('selected');
+    el.style.background=''; el.style.color=''; el.style.borderColor=''; el.style.boxShadow='';
+  });
+
   hideMessages();
 }
 
 /* ===== Wiring ===== */
 document.addEventListener('DOMContentLoaded', () => {
+  // Remove "Open in Outlook" button entirely
+  document.getElementById('confOutlookLink')?.remove();
+
+  // "Book another" should hide card and scroll to top
+  document.getElementById('confBookAnother')?.addEventListener('click', () => {
+    document.getElementById('confirmationCard')?.classList.remove('visible');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   // Mutually exclusive flow toggles
   const selfC = document.getElementById('selfConfirm18');
   const guardC = document.getElementById('guardianConfirm18');
@@ -1090,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add individual
   document.getElementById('addIndividualBtn')?.addEventListener('click', addIndividualCard);
 
-  // Ensure first person card has a remove button if authoring left it out
+  // Ensure first person card has a remove button if missing
   (function ensureFirstPersonRemove(){
     const firstCard = document.querySelector('#individualsList .person-card');
     if (firstCard && !firstCard.querySelector('.btn-remove')){
@@ -1119,6 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('bookingForm')?.addEventListener('submit', handleSubmit);
 });
 </script>
+
 
 </body>
 </html>
