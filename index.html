@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Still Waters Counseling - Book Your Appointment</title>
+  <link rel="icon" type="image/x-icon" href="./favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+  <link rel="manifest" href="./site.webmanifest">
 
   <style>
     /* --- Reset & Tokens --- */
@@ -92,11 +97,25 @@
 
     /* --- Header --- */
     .header{
-      padding: 40px 32px;
-      color: #fff;
-      background:
-        radial-gradient(800px 200px at 20% -20%, rgba(56,189,248,.35), transparent 60%),
-        linear-gradient(135deg, var(--primary), var(--secondary));
+      padding:40px 32px;
+      color:#fff;
+      background:linear-gradient(135deg, var(--primary), var(--secondary));
+      text-align:center;
+    }
+
+    .header img.logo{
+      max-width:100px;
+      height:auto;
+      display:block;
+      margin:0 auto 16px auto;
+      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));
+    }
+
+    .header .call-line{
+      font-size:1rem;
+      margin-top:10px;
+      color:#e0eaff;
+      font-weight:600;
     }
     .header h1{
       font-size: clamp(1.8rem, 2.6vw, 2.6rem);
@@ -299,8 +318,13 @@
   <div class="container">
     <!-- Header -->
     <div class="header">
-      <h1>Still Waters Counseling</h1>
-      <p>Schedule Your Intake Appointment</p>
+     <img src="logo.png" alt="Still Waters Logo" class="logo"style="border-radius:30px;" />
+      <h1>Still Waters Professional Counseling Services, Inc.</h1>
+      <h2>Schedule Your Intake Appointment</h2>
+      <div class="call-line">
+        If you prefer to make your appointment by speaking to a Still Water’s employee call:<br>
+        <strong>706-955-9224</strong>
+    </div>
     </div>
 
     <!-- Emergency banner -->
