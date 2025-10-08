@@ -592,6 +592,7 @@ const CONFIG = {
 /* ===== State ===== */
 let selectedSlot = { self: null, guardian: null };
 let availableSlots = [];
+let selectedDate = { self: null, guardian: null };
 
 /* ===== Utilities ===== */
 function withKey(url, key) {
@@ -679,13 +680,13 @@ function applyChipSelectedStyle(chip, scope){
 /* ===== Slots UI Builders ===== */
 /* NORMAL (SELF) — one chip per API slot */
 /* NORMAL (SELF) — show start times only, stepped by SLOT_MINUTES */
-function displayNormalSlots(slots, containerId, slotKey){
+function displayNormalSlots(slots, containerId, flow /* 'self' */){
   const container = document.getElementById(containerId);
   container.innerHTML = '';
-  selectedSlot[slotKey] = null;
+  selectedSlot[flow] = null;
 
   if (!slots || !slots.length){
-    container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>'; 
+    container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
     return;
   }
   if (typeof slots[0] === 'string' || !('startMin' in slots[0])) {
@@ -697,79 +698,66 @@ function displayNormalSlots(slots, containerId, slotKey){
   const keys = Object.keys(byDate).sort();
   if (!keys.length){ container.innerHTML = '<p>No available windows returned by the server.</p>'; return; }
 
+  // --- Date chips (distinct dates only) ---
+  const dateWrap = document.createElement('div');
+  dateWrap.className = 'time-slot';
+  const dateHeader = document.createElement('div');
+  dateHeader.className = 'date';
+  dateHeader.textContent = 'Pick a date';
+  const dateGrid = document.createElement('div');
+  dateGrid.className = 'slot-grid';
+
   keys.forEach(key => {
-    const dayData = byDate[key];
+    const d = byDate[key];
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'slot-chip';
+    chip.textContent = `${localDow(d.y, d.m, d.d)} ${d.dateStr}`;
 
-    const card = document.createElement('div');
-    card.className = 'time-slot';
-
-    const header = document.createElement('div');
-    header.className = 'date';
-    header.textContent = localDow(dayData.y, dayData.m, dayData.d) + ' ' + dayData.dateStr;
-
-    const sub = document.createElement('div');
-    sub.className = 'range';
-    sub.textContent = 'Available window(s): ' + windowsToText(dayData.windows);
-
-    const grid = document.createElement('div');
-    grid.className = 'slot-grid';
-
-    // emit start times at SLOT_MINUTES granularity
-    const need = CONFIG.SLOT_MINUTES;            // duration per self appointment
-    const emittedStarts = new Set();
-
-    dayData.windows.forEach(w => {
-      for (let m = w.startMin; m + need <= w.endMin; m += CONFIG.SLOT_MINUTES) {
-        if (emittedStarts.has(m)) continue;
-        emittedStarts.add(m);
-
-        const startHM = minutesToHM(m);
-        const chip = document.createElement('div');
-        chip.className = 'slot-chip';
-        chip.setAttribute('role','button'); 
-        chip.setAttribute('tabindex','0');
-        chip.textContent = t12fmt(startHM.hour, startHM.minute); // start only
-
-        chip.addEventListener('click', () => {
-          applyChipSelectedStyle(chip, grid);
-          selectedSlot[slotKey] = {
-            y: dayData.y, m: dayData.m, d: dayData.d,
-            dateStr: dayData.dateStr,
-            start: { hour: startHM.hour, minute: startHM.minute },
-            durationMinutes: need // exactly SLOT_MINUTES
-          };
-        });
-        chip.addEventListener('keydown', ev => {
-          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); chip.click(); }
-        });
-
-        grid.appendChild(chip);
-      }
-    });
-
-    if (!grid.children.length){
-      const empty = document.createElement('div');
-      empty.style.color = 'var(--muted)';
-      empty.textContent = `No ${need}-minute start times fit within today's windows.`;
-      grid.appendChild(empty);
+    // pre-highlight if this date was already selected
+    if (selectedDate[flow] === key) {
+      applyChipSelectedStyle(chip, dateGrid);
     }
 
-    card.appendChild(header);
-    card.appendChild(sub);
-    card.appendChild(grid);
-    container.appendChild(card);
+    chip.addEventListener('click', () => {
+      selectedDate[flow] = key;
+      applyChipSelectedStyle(chip, dateGrid);
+      // when date changes, clear prior time selection
+      selectedSlot[flow] = null;
+      // render times for that date only
+      renderTimesForDate(flow, byDate[key], timesHost, CONFIG.SLOT_MINUTES, CONFIG.SLOT_MINUTES);
+    });
+
+    dateGrid.appendChild(chip);
   });
+
+  dateWrap.appendChild(dateHeader);
+  dateWrap.appendChild(dateGrid);
+
+  // --- Times host (empty until a date is chosen) ---
+  const timesHost = document.createElement('div');
+  // If you want it visually separated, keep it as another card:
+  // timesHost will get its own .time-slot when populated
+
+  container.appendChild(dateWrap);
+  container.appendChild(timesHost);
+
+  // If a date was already selected (e.g., reload), render its times now
+  if (selectedDate[flow] && byDate[selectedDate[flow]]) {
+    renderTimesForDate(flow, byDate[selectedDate[flow]], timesHost, CONFIG.SLOT_MINUTES, CONFIG.SLOT_MINUTES);
+  }
 }
 
 
 /* GUARDIAN (3-hour block) — step possible starts within windows */
-function displayHouseholdSlots(slots, containerId){
+function displayHouseholdSlots(slots, containerId /* guardian */){
   const container = document.getElementById(containerId);
   container.innerHTML = '';
   selectedSlot.guardian = null;
 
   if (!slots || !slots.length){
-    container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>'; return;
+    container.innerHTML = '<p>No available slots returned by the server. Please check back later.</p>';
+    return;
   }
   if (typeof slots[0] === 'string' || !('startMin' in slots[0])) {
     try { slots = slots.map(parseSlotString); }
@@ -780,67 +768,107 @@ function displayHouseholdSlots(slots, containerId){
   const keys = Object.keys(byDate).sort();
   if (!keys.length){ container.innerHTML = '<p>No available windows returned by the server.</p>'; return; }
 
+  // --- Date chips (distinct dates only) ---
+  const dateWrap = document.createElement('div');
+  dateWrap.className = 'time-slot';
+  const dateHeader = document.createElement('div');
+  dateHeader.className = 'date';
+  dateHeader.textContent = 'Pick a date';
+  const dateGrid = document.createElement('div');
+  dateGrid.className = 'slot-grid';
+
   keys.forEach(key => {
-    const dayData = byDate[key];
+    const d = byDate[key];
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'slot-chip';
+    chip.textContent = `${localDow(d.y, d.m, d.d)} ${d.dateStr}`;
 
-    const card = document.createElement('div');
-    card.className = 'time-slot';
-
-    const header = document.createElement('div');
-    header.className = 'date';
-    header.textContent = localDow(dayData.y, dayData.m, dayData.d) + ' ' + dayData.dateStr;
-
-    const sub = document.createElement('div');
-    sub.className = 'range';
-    sub.textContent = 'Available window(s): ' + windowsToText(dayData.windows);
-
-    const grid = document.createElement('div');
-    grid.className = 'slot-grid';
-
-    const emittedStarts = new Set();
-    const need = CONFIG.HOUSEHOLD_BLOCK_MINUTES;
-
-    dayData.windows.forEach(w => {
-      if ((w.endMin - w.startMin) < need) return;
-      for (let m = w.startMin; m + need <= w.endMin; m += CONFIG.SLOT_MINUTES) {
-        if (emittedStarts.has(m)) continue;
-        emittedStarts.add(m);
-
-        const startHM = minutesToHM(m);
-        const chip = document.createElement('div');
-        chip.className = 'slot-chip';
-        chip.setAttribute('role','button'); chip.setAttribute('tabindex','0');
-        chip.textContent = t12fmt(startHM.hour, startHM.minute); // start only
-
-        chip.addEventListener('click', () => {
-          applyChipSelectedStyle(chip, grid);
-          selectedSlot.guardian = {
-            y: dayData.y, m: dayData.m, d: dayData.d,
-            dateStr: dayData.dateStr,
-            start: { hour: startHM.hour, minute: startHM.minute },
-            durationMinutes: need
-          };
-        });
-        chip.addEventListener('keydown', ev => {
-          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); chip.click(); }
-        });
-
-        grid.appendChild(chip);
-      }
-    });
-
-    if (!grid.children.length){
-      const empty = document.createElement('div');
-      empty.style.color = 'var(--muted)';
-      empty.textContent = 'No 3-hour start times fit within today\'s windows.';
-      grid.appendChild(empty);
+    if (selectedDate.guardian === key) {
+      applyChipSelectedStyle(chip, dateGrid);
     }
 
-    card.appendChild(header);
-    card.appendChild(sub);
-    card.appendChild(grid);
-    container.appendChild(card);
+    chip.addEventListener('click', () => {
+      selectedDate.guardian = key;
+      applyChipSelectedStyle(chip, dateGrid);
+      selectedSlot.guardian = null;
+      // 3-hour block, stepped by SLOT_MINUTES
+      renderTimesForDate('guardian', byDate[key], timesHost, CONFIG.HOUSEHOLD_BLOCK_MINUTES, CONFIG.SLOT_MINUTES);
+    });
+
+    dateGrid.appendChild(chip);
   });
+
+  dateWrap.appendChild(dateHeader);
+  dateWrap.appendChild(dateGrid);
+
+  const timesHost = document.createElement('div');
+
+  container.appendChild(dateWrap);
+  container.appendChild(timesHost);
+
+  if (selectedDate.guardian && byDate[selectedDate.guardian]) {
+    renderTimesForDate('guardian', byDate[selectedDate.guardian], timesHost, CONFIG.HOUSEHOLD_BLOCK_MINUTES, CONFIG.SLOT_MINUTES);
+  }
+}
+
+function renderTimesForDate(flow, dayData, host, needMinutes, stepMinutes){
+  host.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'time-slot';
+
+  const header = document.createElement('div');
+  header.className = 'date';
+  header.textContent = `${localDow(dayData.y, dayData.m, dayData.d)} ${dayData.dateStr}`;
+
+  const grid = document.createElement('div');
+  grid.className = 'slot-grid';
+
+  const emitted = new Set();
+  dayData.windows.forEach(w => {
+    for (let m = w.startMin; m + needMinutes <= w.endMin; m += stepMinutes){
+      if (emitted.has(m)) continue;
+      emitted.add(m);
+
+      const startHM = minutesToHM(m);
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'slot-chip';
+      chip.textContent = t12fmt(startHM.hour, startHM.minute);
+
+      chip.addEventListener('click', () => {
+        applyChipSelectedStyle(chip, grid);
+        // Save selected slot for the active flow
+        const f = flow === 'guardian' ? 'guardian' : 'self';
+        selectedSlot[f] = {
+          y: dayData.y, m: dayData.m, d: dayData.d,
+          dateStr: dayData.dateStr,
+          start: { hour: startHM.hour, minute: startHM.minute },
+          durationMinutes: needMinutes
+        };
+      });
+
+      chip.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); chip.click(); }
+      });
+
+      grid.appendChild(chip);
+    }
+  });
+
+  if (!grid.children.length){
+    const empty = document.createElement('div');
+    empty.style.color = 'var(--muted)';
+    empty.textContent = needMinutes >= 180
+      ? 'No 3-hour start times fit within this date.'
+      : `No ${needMinutes}-minute start times fit within this date.`;
+    grid.appendChild(empty);
+  }
+
+  card.appendChild(header);
+  card.appendChild(grid);
+  host.appendChild(card);
 }
 
 /* ===== Fetch + Load Slots ===== */
@@ -1103,7 +1131,8 @@ function clearForm(){
   const form = document.getElementById('bookingForm'); if (form) form.reset();
 
   selectedSlot.self = null; selectedSlot.guardian = null;
-
+  selectedDate.self = null;          // ← add
+  selectedDate.guardian = null;      // ← add
   const tsSelf = document.getElementById('timeSlotsSelf'); if (tsSelf) tsSelf.innerHTML = '';
   const tsG = document.getElementById('timeSlotsGuardian'); if (tsG) tsG.innerHTML = '';
 
