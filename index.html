@@ -312,6 +312,47 @@
       .form-row{ grid-template-columns: 1fr; }
       .btn{ width: 100%; }
     }
+
+    /* Loading helpers */
+.spinner{
+  width: 28px; height: 28px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-box{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  color: var(--text-soft);
+  padding: 18px;
+  border: 1.5px dashed var(--border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #fafafa);
+}
+
+.btn[disabled]{
+  opacity:.7; cursor:not-allowed; transform:none !important; box-shadow:none !important;
+}
+
+/* Full-screen overlay for submit */
+.loading-overlay{
+  position: fixed; inset: 0;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(15,23,42,.28); backdrop-filter: blur(2px);
+  z-index: 9999;
+}
+.loading-overlay.active{ display: flex; }
+.loading-card{
+  display:flex; align-items:center; gap:12px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  border-radius: 14px; padding: 16px 18px;
+}
+.loading-card .spinner{ width:24px; height:24px; border-width:3px; }
+
   </style>
 </head>
 <body>
@@ -610,6 +651,54 @@ function convertTo24Hour(timeStr){
   let h=parseInt(hm[0],10), m=parseInt(hm[1],10);
   if(p==='PM'&&h!==12)h+=12; if(p==='AM'&&h===12)h=0; return {hours:h, minutes:m};
 }
+
+
+/* ===== Loading helpers ===== */
+function showSlotsLoading(containerId){
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = `
+    <div class="loading-box" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <span>Loading available times…</span>
+    </div>`;
+}
+
+function setButtonLoading(btn, on, txt='Loading…'){
+  if (!btn) return;
+  if (on){
+    if (!btn.dataset._label) btn.dataset._label = btn.textContent;
+    btn.disabled = true; btn.textContent = txt;
+  }else{
+    btn.disabled = false; btn.textContent = btn.dataset._label || btn.textContent;
+    delete btn.dataset._label;
+  }
+}
+
+// Create global overlay once
+let _overlayEl = null;
+function ensureOverlay(){
+  if (_overlayEl) return _overlayEl;
+  _overlayEl = document.createElement('div');
+  _overlayEl.id = 'globalLoading';
+  _overlayEl.className = 'loading-overlay';
+  _overlayEl.setAttribute('aria-live','polite');
+  _overlayEl.innerHTML = `
+    <div class="loading-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <span id="globalLoadingText">Working…</span>
+    </div>`;
+  document.body.appendChild(_overlayEl);
+  return _overlayEl;
+}
+function setGlobalLoading(on, text){
+  const ov = ensureOverlay();
+  const label = ov.querySelector('#globalLoadingText');
+  if (text) label.textContent = text;
+  ov.classList.toggle('active', !!on);
+}
+
+
 function parseSlotString(slotStr){
   // e.g. "12 Sep 2025, 02:25 PM - 02:40 PM"
   const [datePart, timePart] = slotStr.split(', ');
@@ -873,7 +962,15 @@ function renderTimesForDate(flow, dayData, host, needMinutes, stepMinutes){
 
 /* ===== Fetch + Load Slots ===== */
 async function loadAvailableSlots(mode){
+  const button = mode === 'guardian'
+    ? document.getElementById('loadSlotsGuardianBtn')
+    : document.getElementById('loadSlotsSelfBtn');
+  const containerId = mode === 'guardian' ? 'timeSlotsGuardian' : 'timeSlotsSelf';
+
   try{
+    setButtonLoading(button, true, 'Loading…');
+    showSlotsLoading(containerId);
+
     const url = withKey(CONFIG.GET_SLOTS_URL, CONFIG.GET_SLOTS_KEY);
     const resp = await fetch(url, { method:'GET', headers:{'Accept':'application/json'} });
     const text = await resp.text();
@@ -892,7 +989,11 @@ async function loadAvailableSlots(mode){
     }
   }catch(err){
     console.error(err);
+    const c = document.getElementById(containerId);
+    if (c) c.innerHTML = '<div class="loading-box">Could not load times. Please try again.</div>';
     showError('Failed to load available appointment times. Please try again.');
+  }finally{
+    setButtonLoading(button, false);
   }
 }
 
@@ -1040,6 +1141,9 @@ async function handleSubmit(e){
         transactionId: generateUUID(),
         dob, over18: 'yes', guardian: null, household: null
       };
+      setButtonLoading(document.querySelector('#bookingForm button[type="submit"]'), true, 'Booking…');
+      setGlobalLoading(true, 'Booking your appointment…');
+
 
       const resp = await fetch(withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY), {
         method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
@@ -1103,6 +1207,9 @@ async function handleSubmit(e){
         transactionId: generateUUID(),
         dob: null, over18: 'yes', guardian: { name: `${gf} ${gl}`, phone: gp, email: ge }, household
       };
+      setButtonLoading(document.querySelector('#bookingForm button[type="submit"]'), true, 'Booking…');
+     setGlobalLoading(true, 'Booking your appointment…');
+
 
       const resp = await fetch(withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY), {
         method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
@@ -1124,6 +1231,10 @@ async function handleSubmit(e){
     console.error(err);
     showError('There was an error booking your appointment. Please try again or contact us.');
   }
+  finally {
+  setButtonLoading(document.querySelector('#bookingForm button[type="submit"]'), false);
+  setGlobalLoading(false);
+}
 }
 
 /* ===== Clear ===== */
