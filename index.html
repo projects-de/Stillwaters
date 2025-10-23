@@ -133,10 +133,64 @@
       border-bottom: 1px solid rgba(255,255,255,.25);
       font-weight: 600;
     }
-    .emergency-notice svg{ width: 22px; height: 22px; }
+    .emergency-notice svg{ width: 22px; height: 22px; fill: currentColor; }
+
+    /* --- Flow Selection Section --- */
+    .flow-selection{
+      padding: 32px;
+      text-align: center;
+    }
+    .flow-selection h2{
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+    .flow-options{
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .flow-option-card{
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all var(--t-med);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .flow-option-card:hover{
+      border-color: var(--primary);
+      box-shadow: var(--shadow);
+      transform: translateY(-2px);
+    }
+    .flow-option-card.selected{
+      border-color: var(--primary);
+      background: linear-gradient(135deg, rgba(79,70,229,.08), rgba(6,182,212,.08));
+      box-shadow: var(--shadow);
+    }
+    .flow-option-card input[type="radio"]{
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+    }
+    .flow-option-label{
+      flex: 1;
+      text-align: left;
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--text);
+      cursor: pointer;
+    }
 
     /* --- Shared form styles --- */
-    .form-container{ padding: 32px; }
+    .form-container{ padding: 32px; display: none; }
+    .form-container.visible{ display: block; }
     .form-section{ margin-bottom: 22px; }
     .form-section h3{ font-size: 1.05rem; font-weight: 800; color: var(--text); margin-bottom: 12px; }
     .form-group{ margin-bottom: 14px; }
@@ -210,36 +264,25 @@
     }
     .slot-chip:hover{ transform: translateY(-1px); border-color: var(--primary); box-shadow: var(--shadow); }
 
-    /* --- Two-Flow Layout --- */
-    .flow-grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 22px;
-      margin-top: 6px;
-    }
-    .flow-card{
+    /* --- Single flow card (centered) --- */
+    .single-flow-card{
+      max-width: 800px;
+      margin: 0 auto;
       background: var(--card);
       border: 1.5px solid var(--border);
       border-radius: 16px;
-      padding: 18px;
+      padding: 24px;
       box-shadow: var(--shadow);
     }
     .flow-title{
       font-weight: 900;
       color: var(--text);
-      margin-bottom: 4px;
-      font-size: 1.1rem;
+      margin-bottom: 8px;
+      font-size: 1.3rem;
       letter-spacing: .2px;
+      text-align: center;
     }
-    .flow-intro{ color: var(--muted); font-size: .95rem; margin-bottom: 12px; }
-    .flow-toggle{
-      display:flex; gap:10px; align-items:flex-start;
-      background: color-mix(in oklab, var(--accent) 10%, #fff);
-      border: 1px dashed color-mix(in oklab, var(--accent) 40%, #fff);
-      padding: 12px; border-radius: 12px; margin-bottom: 14px;
-    }
-    .flow-toggle input[type="checkbox"]{ margin-top: 2px; }
-    .flow-section{ margin-bottom: 18px; }
+    .flow-intro{ color: var(--muted); font-size: .95rem; margin-bottom: 20px; text-align: center; }
 
     /* Individuals list (re-using sibling card visuals) */
     .person-card{
@@ -275,8 +318,23 @@
     }
     .btn-secondary:hover{ transform: translateY(-2px); box-shadow: var(--shadow); }
     .btn-pill{ border-radius: var(--r-full); padding: 10px 16px; font-weight: 800; }
+    .btn-remove{
+      background: transparent;
+      border: 1.5px solid var(--danger);
+      color: var(--danger);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: .85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--t-fast);
+    }
+    .btn-remove:hover{
+      background: var(--danger);
+      color: white;
+    }
 
-    /* Alerts (for when wired up) */
+    /* Alerts */
     .success-message,
     .error-message{
       display:none;
@@ -289,81 +347,80 @@
     .success-message{ background: color-mix(in oklab, var(--success) 18%, #ecfdf5); color: #065f46; border: 1.5px solid color-mix(in oklab, var(--success) 40%, #ffffff); }
     .error-message{ background: color-mix(in oklab, var(--danger) 18%, #fef2f2); color: #7f1d1d; border: 1.5px solid color-mix(in oklab, var(--danger) 40%, #ffffff); }
 
-    /* Confirmation card (for when wired up) */
+    /* Confirmation card */
     .confirm-card{
       display:none;
       background: color-mix(in oklab, var(--success) 10%, #fff);
       border: 1.5px solid color-mix(in oklab, var(--success) 30%, #fff);
       border-radius: 16px;
-      padding: 18px;
+      padding: 24px;
       box-shadow: var(--shadow);
-      margin: 16px 0;
+      margin: 16px auto;
+      max-width: 600px;
+      text-align: center;
     }
     .confirm-card.visible{ display:block; }
-    .confirm-card h3{ font-size:1.15rem; font-weight:800; margin-bottom:8px; color:#065f46; }
-    .confirm-row{ display:flex; gap:10px; align-items:flex-start; margin:6px 0; color:#064e3b; }
-    .confirm-row b{ min-width:130px; display:inline-block; color:#065f46; }
-    .confirm-actions{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
-    .confirm-actions .btn{ padding:10px 16px; font-size:.95rem; }
+    .confirm-card h3{ font-size:1.4rem; font-weight:800; margin-bottom:16px; color:#065f46; }
+    .confirm-row{ display:flex; gap:10px; align-items:flex-start; margin:10px 0; color:#064e3b; justify-content: center; }
+    .confirm-row b{ min-width:130px; display:inline-block; color:#065f46; text-align: right; }
+    .confirm-actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; justify-content: center; }
+    .confirm-actions .btn{ padding:12px 20px; font-size:.95rem; }
 
     /* Responsive */
     @media (max-width: 900px){
-      .flow-grid{ grid-template-columns: 1fr; }
       .form-row{ grid-template-columns: 1fr; }
       .btn{ width: 100%; }
     }
 
     /* Loading helpers */
-.spinner{
-  width: 28px; height: 28px;
-  border: 3px solid var(--border);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin .8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+    .spinner{
+      width: 28px; height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-.loading-box{
-  display:flex; align-items:center; justify-content:center; gap:10px;
-  color: var(--text-soft);
-  padding: 18px;
-  border: 1.5px dashed var(--border);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #ffffff, #fafafa);
-}
+    .loading-box{
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      color: var(--text-soft);
+      padding: 18px;
+      border: 1.5px dashed var(--border);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffffff, #fafafa);
+    }
 
-.btn[disabled]{
-  opacity:.7; cursor:not-allowed; transform:none !important; box-shadow:none !important;
-}
+    .btn[disabled]{
+      opacity:.7; cursor:not-allowed; transform:none !important; box-shadow:none !important;
+    }
 
-/* Full-screen overlay for submit */
-.loading-overlay{
-  position: fixed; inset: 0;
-  display: none; align-items: center; justify-content: center;
-  background: rgba(15,23,42,.28); backdrop-filter: blur(2px);
-  z-index: 9999;
-}
-.loading-overlay.active{ display: flex; }
-.loading-card{
-  display:flex; align-items:center; gap:12px;
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  box-shadow: var(--shadow-lg);
-  border-radius: 14px; padding: 16px 18px;
-}
-.loading-card .spinner{ width:24px; height:24px; border-width:3px; }
-
+    /* Full-screen overlay for submit */
+    .loading-overlay{
+      position: fixed; inset: 0;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(15,23,42,.28); backdrop-filter: blur(2px);
+      z-index: 9999;
+    }
+    .loading-overlay.active{ display: flex; }
+    .loading-card{
+      display:flex; align-items:center; gap:12px;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      border-radius: 14px; padding: 16px 18px;
+    }
+    .loading-card .spinner{ width:24px; height:24px; border-width:3px; }
   </style>
 </head>
 <body>
   <div class="container">
     <!-- Header -->
     <div class="header">
-     <img src="logo.png" alt="Still Waters Logo" class="logo"style="border-radius:3px;" />
       <h1>Still Waters Professional Counseling Services, Inc.</h1>
       <h2>Schedule Your Intake Appointment</h2>
       <div class="call-line">
-        If you prefer to make your appointment by speaking to a Still Water’s employee call:<br>
+        If you prefer to make your appointment by speaking to a Still Water's employee call:<br>
         <strong>706-955-9224</strong>
     </div>
     </div>
@@ -374,249 +431,132 @@
       <span>If you are experiencing an emergency, please dial 911 immediately</span>
     </div>
 
+    <!-- Flow Selection -->
+    <div id="flowSelection" class="flow-selection">
+      <h2>Please select which applies to you:</h2>
+      <div class="flow-options">
+        <label class="flow-option-card" id="selfOptionCard">
+          <input type="radio" name="flowType" value="self" id="flowTypeSelf">
+          <span class="flow-option-label">I am an individual seeking services and confirm that I am over the age of 18 <span class="required">*</span></span>
+        </label>
+        <label class="flow-option-card" id="guardianOptionCard">
+          <input type="radio" name="flowType" value="guardian" id="flowTypeGuardian">
+          <span class="flow-option-label">I am parent or guardian of an individual(s) seeking services and confirm I am over the age of 18 <span class="required">*</span></span>
+        </label>
+      </div>
+    </div>
+
     <!-- Form -->
     <form id="bookingForm" class="form-container" novalidate>
-      <!-- Alerts (will show after wiring) -->
+      <!-- Alerts -->
       <div id="successMessage" class="success-message">Appointment booked successfully! You'll receive a confirmation soon.</div>
       <div id="errorMessage" class="error-message">There was an error booking your appointment. Please try again.</div>
 
-      <!-- Confirmation (will show after wiring) -->
+      <!-- Confirmation -->
       <div id="confirmationCard" class="confirm-card" aria-live="polite">
-        <h3>You're booked! 🎉</h3>
+        <h3>✅ Your Appointment Has Been Submitted!</h3>
         <div class="confirm-row"><b>Date & time</b><span id="confWhen">—</span></div>
         <div class="confirm-row"><b>Counselor</b><span id="confCounselor">—</span></div>
-        <div class="confirm-row" id="confTeleRow" style="display:none;"><b>Telehealth</b>
-          <span><a id="confTeleLink" href="#" target="_blank" rel="noopener">Join video session</a></span>
-        </div>
-        <div class="confirm-row" id="confInPersonRow" style="display:none;"><b>Visit info</b>
-          <span id="confVisitText">We’ll send directions and arrival details via email/text.</span>
+        <div class="confirm-row" id="confInPersonRow"><b>Visit info</b>
+          <span id="confVisitText">We'll send directions and arrival details via email/text.</span>
         </div>
         <div class="confirm-actions">
-          <a id="confOutlookLink" class="btn btn-secondary btn-pill" href="#" target="_blank" rel="noopener">Open in Outlook</a>
-          <button id="confBookAnother" type="button" class="btn btn-primary btn-pill">Book another</button>
+          <button id="confBookAnother" type="button" class="btn btn-primary btn-pill">Book Another Appointment</button>
         </div>
       </div>
 
-      <!-- TWO FLOWS -->
-      <div class="flow-grid">
-        <!-- LEFT: Individual (Self) -->
-        <div class="flow-card" id="flowSelf">
-          <div class="flow-title">Individual (18+)</div>
-          <div class="flow-intro">For adults scheduling for themselves.</div>
+      <!-- SELF FLOW -->
+      <div id="flowSelf" class="single-flow-card" style="display:none;">
+        <div class="flow-title">Individual (18+) Appointment</div>
+        <div class="flow-intro">Complete the form below to schedule your appointment.</div>
 
-          <!-- Flow toggle -->
-          <div class="flow-toggle">
-            <input type="checkbox" id="selfConfirm18"/>
-            <label for="selfConfirm18">I am an individual seeking services and confirm that I am over the age of 18 <span class="required">*</span></label>
-          </div>
-
-          <!-- Your information -->
-          <div class="flow-section">
-            <h3>Your Information</h3>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="selfFirstName">First Name <span class="required">*</span></label>
-                <input type="text" id="selfFirstName" />
-              </div>
-              <div class="form-group">
-                <label for="selfLastName">Last Name <span class="required">*</span></label>
-                <input type="text" id="selfLastName" />
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="selfEmail">Email Address <span class="required">*</span></label>
-                <input type="email" id="selfEmail" />
-              </div>
-              <div class="form-group">
-                <label for="selfPhone">Phone Number <span class="required">*</span></label>
-                <input type="tel" id="selfPhone" placeholder="123-456-7890" />
-              </div>
+        <!-- Your information -->
+        <div class="form-section">
+          <h3>Your Information</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="selfFirstName">First Name <span class="required">*</span></label>
+              <input type="text" id="selfFirstName" />
             </div>
             <div class="form-group">
-              <label for="selfDob">BirthDate <span class="required">*</span></label>
-              <input type="date" id="selfDob" />
+              <label for="selfLastName">Last Name <span class="required">*</span></label>
+              <input type="text" id="selfLastName" />
             </div>
           </div>
-
-          <!-- Appointment Type -->
-          <div class="flow-section">
-            <h3>Preferred Appointment Type <span class="required">*</span></h3>
-            <div class="radio-group">
-              <label class="radio-option">
-                <input type="radio" name="apptTypeSelf" value="home" />
-                <span>At Home – In Person</span>
-              </label>
-              <label class="radio-option">
-                <input type="radio" name="apptTypeSelf" value="office" />
-                <span>At Office – In Person</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Available Slots -->
-          <div class="flow-section">
-            <h3>Available Slots</h3>
+          <div class="form-row">
             <div class="form-group">
-              <button type="button" class="btn btn-secondary btn-pill" id="loadSlotsSelfBtn">Load Available Times</button>
-            </div>
-            <div id="timeSlotsSelf" class="time-slots"></div>
-          </div>
-
-          <!-- Additional Info -->
-          <div class="flow-section">
-            <h3>Additional Information</h3>
-            <div class="form-group">
-              <label for="selfAltAvailability">Alternate Availability (Optional)</label>
-              <textarea id="selfAltAvailability" placeholder="If the available slots don't work, describe your availability"></textarea>
+              <label for="selfEmail">Email Address</label>
+              <input type="email" id="selfEmail" />
             </div>
             <div class="form-group">
-              <label for="selfNotes">Additional Notes (Optional)</label>
-              <textarea id="selfNotes" placeholder="Any other information you'd like us to know"></textarea>
+              <label for="selfPhone">Phone Number <span class="required">*</span></label>
+              <input type="tel" id="selfPhone" placeholder="123-456-7890" />
             </div>
           </div>
+          <div class="form-group">
+            <label for="selfDob">BirthDate <span class="required">*</span></label>
+            <input type="date" id="selfDob" />
+          </div>
+        </div>
 
-          <!-- Consent -->
-          <div class="flow-section">
-            <h3>Consent &amp; Acknowledgments</h3>
-            <label class="checkbox-group">
-              <input type="checkbox" id="selfConsent"/>
-              <span>I consent to receive appointment reminders via text and email <span class="required">*</span></span>
+        <!-- Appointment Type -->
+        <div class="form-section">
+          <h3>Preferred Appointment Type <span class="required">*</span></h3>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="apptTypeSelf" value="home" />
+              <span>At Home – In Person</span>
             </label>
-            <label class="checkbox-group">
-              <input type="checkbox" id="selfEmergency"/>
-              <span>I confirm that I am not currently experiencing a medical or mental health emergency <span class="required">*</span></span>
+            <label class="radio-option">
+              <input type="radio" name="apptTypeSelf" value="office" />
+              <span>At Office – In Person</span>
             </label>
           </div>
         </div>
 
-        <!-- RIGHT: Parent / Guardian -->
-        <div class="flow-card" id="flowGuardian">
-          <div class="flow-title">Parent or Guardian (18+)</div>
-          <div class="flow-intro">For adults scheduling for one or more individuals.</div>
-
-          <!-- Flow toggle -->
-          <div class="flow-toggle">
-            <input type="checkbox" id="guardianConfirm18"/>
-            <label for="guardianConfirm18">I am parent or guardian of an individual(s) seeking services and confirm I am over the age of 18 <span class="required">*</span></label>
+        <!-- Available Slots -->
+        <div class="form-section">
+          <h3>Available Slots</h3>
+          <div class="form-group">
+            <button type="button" class="btn btn-secondary btn-pill" id="loadSlotsSelfBtn">Load Available Times</button>
           </div>
+          <div id="timeSlotsSelf" class="time-slots"></div>
+        </div>
 
-          <!-- Guardian info -->
-          <div class="flow-section">
-            <h3>Parent/Guardian Information</h3>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="guardFirstName">First Name (Parent or Guardian) <span class="required">*</span></label>
-                <input type="text" id="guardFirstName" />
-              </div>
-              <div class="form-group">
-                <label for="guardLastName">Last Name (Parent or Guardian) <span class="required">*</span></label>
-                <input type="text" id="guardLastName" />
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="guardEmail">Email Address (Parent or Guardian) <span class="required">*</span></label>
-                <input type="email" id="guardEmail" />
-              </div>
-              <div class="form-group">
-                <label for="guardPhone">Phone Number (Parent or Guardian) <span class="required">*</span></label>
-                <input type="tel" id="guardPhone" placeholder="123-456-7890" />
-              </div>
-            </div>
+        <!-- Additional Info -->
+        <div class="form-section">
+          <h3>Additional Information</h3>
+          <div class="form-group">
+            <label for="selfAltAvailability">Alternate Availability (Optional)</label>
+            <textarea id="selfAltAvailability" placeholder="If the available slots don't work, describe your availability"></textarea>
           </div>
-
-          <!-- Individuals seeking services -->
-          <div class="flow-section">
-            <h3><b>Individuals Seeking Services</b></h3>
-
-            <!-- One individual row to start -->
-            <div id="individualsList">
-              <div class="person-card">
-                <div class="person-header">
-                  <span class="person-title">Individual</span>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label>First Name <span class="required">*</span></label>
-                    <input type="text" />
-                  </div>
-                  <div class="form-group">
-                    <label>Last Name <span class="required">*</span></label>
-                    <input type="text" />
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>BirthDate <span class="required">*</span></label>
-                  <input type="date" />
-                </div>
-              </div>
-            </div>
-
-            <button type="button" class="btn btn-secondary btn-pill" id="addIndividualBtn">+ Individuals</button>
-          </div>
-
-          <!-- Appointment Type -->
-          <div class="flow-section">
-            <h3>Preferred Appointment Type <span class="required">*</span></h3>
-            <div class="radio-group">
-              <label class="radio-option">
-                <input type="radio" name="apptTypeGuardian" value="home" />
-                <span>At Home – In Person</span>
-              </label>
-              <label class="radio-option">
-                <input type="radio" name="apptTypeGuardian" value="office" />
-                <span>At Office – In Person</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Available Slots -->
-          <div class="flow-section">
-            <h3>Available Slots</h3>
-            <div class="form-group">
-              <button type="button" class="btn btn-secondary btn-pill" id="loadSlotsGuardianBtn">Load Available Times (3-hour blocks)</button>
-            </div>
-            <div id="timeSlotsGuardian" class="time-slots"></div>
-          </div>
-
-          <!-- Additional Info -->
-          <div class="flow-section">
-            <h3>Additional Information</h3>
-            <div class="form-group">
-              <label for="guardAltAvailability">Alternate Availability (Optional)</label>
-              <textarea id="guardAltAvailability" placeholder="If the available slots don't work, describe your availability"></textarea>
-            </div>
-            <div class="form-group">
-              <label for="guardNotes">Additional Notes (Optional)</label>
-              <textarea id="guardNotes" placeholder="Any other information you'd like us to know"></textarea>
-            </div>
-          </div>
-
-          <!-- Consent -->
-          <div class="flow-section">
-            <h3>Consent &amp; Acknowledgments</h3>
-            <label class="checkbox-group">
-              <input type="checkbox" id="guardConsent"/>
-              <span>I consent to receive appointment reminders via text and email <span class="required">*</span></span>
-            </label>
-            <label class="checkbox-group">
-              <input type="checkbox" id="guardEmergency"/>
-              <span>I confirm that I am not currently experiencing a medical or mental health emergency <span class="required">*</span></span>
-            </label>
+          <div class="form-group">
+            <label for="selfNotes">Additional Notes (Optional)</label>
+            <textarea id="selfNotes" placeholder="Any other information you'd like us to know"></textarea>
           </div>
         </div>
-      </div>
 
-      <!-- Actions -->
-      <div class="button-group">
-        <button type="button" class="btn btn-secondary">Clear Form</button>
-        <button type="submit" class="btn btn-primary">Book Appointment</button>
+        <!-- Consent -->
+        <div class="form-section">
+          <h3>Consent &amp; Acknowledgments</h3>
+          <label class="checkbox-group">
+            <input type="checkbox" id="guardConsent"/>
+            <span>I consent to receive appointment reminders via text and email <span class="required">*</span></span>
+          </label>
+          <label class="checkbox-group">
+            <input type="checkbox" id="guardEmergency"/>
+            <span>I confirm that I am not currently experiencing a medical or mental health emergency <span class="required">*</span></span>
+          </label>
+        </div>
+
+        <!-- Actions -->
+        <div class="button-group">
+          <button type="button" class="btn btn-secondary" id="clearGuardianBtn">Clear Form</button>
+          <button type="submit" class="btn btn-primary">Book Appointment</button>
+        </div>
       </div>
     </form>
   </div>
-
-
 
 <script>
 /* ===== CONFIG ===== */
@@ -634,6 +574,7 @@ const CONFIG = {
 let selectedSlot = { self: null, guardian: null };
 let availableSlots = [];
 let selectedDate = { self: null, guardian: null };
+let activeFlow = null;
 
 /* ===== Utilities ===== */
 function withKey(url, key) {
@@ -651,7 +592,6 @@ function convertTo24Hour(timeStr){
   let h=parseInt(hm[0],10), m=parseInt(hm[1],10);
   if(p==='PM'&&h!==12)h+=12; if(p==='AM'&&h===12)h=0; return {hours:h, minutes:m};
 }
-
 
 /* ===== Loading helpers ===== */
 function showSlotsLoading(containerId){
@@ -675,7 +615,6 @@ function setButtonLoading(btn, on, txt='Loading…'){
   }
 }
 
-// Create global overlay once
 let _overlayEl = null;
 function ensureOverlay(){
   if (_overlayEl) return _overlayEl;
@@ -698,9 +637,7 @@ function setGlobalLoading(on, text){
   ov.classList.toggle('active', !!on);
 }
 
-
 function parseSlotString(slotStr){
-  // e.g. "12 Sep 2025, 02:25 PM - 02:40 PM"
   const [datePart, timePart] = slotStr.split(', ');
   const [dayStr, monStr, yearStr] = datePart.split(' ');
   const monthMap = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
@@ -728,12 +665,6 @@ function groupByDate(slots){
   });
   return map;
 }
-function windowsToText(windows){
-  return windows.map(w => {
-    const s = minutesToHM(w.startMin), e = minutesToHM(w.endMin);
-    return t12fmt(s.hour, s.minute) + ' - ' + t12fmt(e.hour, e.minute);
-  }).join(', ');
-}
 function localDow(y,m,d){ return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(y, m-1, d).getDay()]; }
 function ymdhms(y,m,d,h,mi){ return y+'-'+p2(m)+'-'+p2(d)+'T'+p2(h)+':'+p2(mi)+':00'; }
 function humanTimeDisplayYMD(y,m,d,start,end){
@@ -753,7 +684,7 @@ function calcAgeFromDOBStr(dobStr){
   const m = t.getMonth() - d.getMonth(); if (m < 0 || (m === 0 && t.getDate() < d.getDate())) a--; return a;
 }
 
-/* ===== Visual select helper (no CSS needed) ===== */
+/* ===== Visual select helper ===== */
 function applyChipSelectedStyle(chip, scope){
   scope.querySelectorAll('.slot-chip').forEach(el=>{
     el.classList.remove('selected');
@@ -767,9 +698,7 @@ function applyChipSelectedStyle(chip, scope){
 }
 
 /* ===== Slots UI Builders ===== */
-/* NORMAL (SELF) — one chip per API slot */
-/* NORMAL (SELF) — show start times only, stepped by SLOT_MINUTES */
-function displayNormalSlots(slots, containerId, flow /* 'self' */){
+function displayNormalSlots(slots, containerId, flow){
   const container = document.getElementById(containerId);
   container.innerHTML = '';
   selectedSlot[flow] = null;
@@ -787,7 +716,6 @@ function displayNormalSlots(slots, containerId, flow /* 'self' */){
   const keys = Object.keys(byDate).sort();
   if (!keys.length){ container.innerHTML = '<p>No available windows returned by the server.</p>'; return; }
 
-  // --- Date chips (distinct dates only) ---
   const dateWrap = document.createElement('div');
   dateWrap.className = 'time-slot';
   const dateHeader = document.createElement('div');
@@ -803,7 +731,6 @@ function displayNormalSlots(slots, containerId, flow /* 'self' */){
     chip.className = 'slot-chip';
     chip.textContent = `${localDow(d.y, d.m, d.d)} ${d.dateStr}`;
 
-    // pre-highlight if this date was already selected
     if (selectedDate[flow] === key) {
       applyChipSelectedStyle(chip, dateGrid);
     }
@@ -811,9 +738,7 @@ function displayNormalSlots(slots, containerId, flow /* 'self' */){
     chip.addEventListener('click', () => {
       selectedDate[flow] = key;
       applyChipSelectedStyle(chip, dateGrid);
-      // when date changes, clear prior time selection
       selectedSlot[flow] = null;
-      // render times for that date only
       renderTimesForDate(flow, byDate[key], timesHost, CONFIG.SLOT_MINUTES, CONFIG.SLOT_MINUTES);
     });
 
@@ -823,23 +748,17 @@ function displayNormalSlots(slots, containerId, flow /* 'self' */){
   dateWrap.appendChild(dateHeader);
   dateWrap.appendChild(dateGrid);
 
-  // --- Times host (empty until a date is chosen) ---
   const timesHost = document.createElement('div');
-  // If you want it visually separated, keep it as another card:
-  // timesHost will get its own .time-slot when populated
 
   container.appendChild(dateWrap);
   container.appendChild(timesHost);
 
-  // If a date was already selected (e.g., reload), render its times now
   if (selectedDate[flow] && byDate[selectedDate[flow]]) {
     renderTimesForDate(flow, byDate[selectedDate[flow]], timesHost, CONFIG.SLOT_MINUTES, CONFIG.SLOT_MINUTES);
   }
 }
 
-
-/* GUARDIAN (3-hour block) — step possible starts within windows */
-function displayHouseholdSlots(slots, containerId /* guardian */){
+function displayHouseholdSlots(slots, containerId){
   const container = document.getElementById(containerId);
   container.innerHTML = '';
   selectedSlot.guardian = null;
@@ -857,7 +776,6 @@ function displayHouseholdSlots(slots, containerId /* guardian */){
   const keys = Object.keys(byDate).sort();
   if (!keys.length){ container.innerHTML = '<p>No available windows returned by the server.</p>'; return; }
 
-  // --- Date chips (distinct dates only) ---
   const dateWrap = document.createElement('div');
   dateWrap.className = 'time-slot';
   const dateHeader = document.createElement('div');
@@ -881,7 +799,6 @@ function displayHouseholdSlots(slots, containerId /* guardian */){
       selectedDate.guardian = key;
       applyChipSelectedStyle(chip, dateGrid);
       selectedSlot.guardian = null;
-      // 3-hour block, stepped by SLOT_MINUTES
       renderTimesForDate('guardian', byDate[key], timesHost, CONFIG.HOUSEHOLD_BLOCK_MINUTES, CONFIG.SLOT_MINUTES);
     });
 
@@ -928,7 +845,6 @@ function renderTimesForDate(flow, dayData, host, needMinutes, stepMinutes){
 
       chip.addEventListener('click', () => {
         applyChipSelectedStyle(chip, grid);
-        // Save selected slot for the active flow
         const f = flow === 'guardian' ? 'guardian' : 'self';
         selectedSlot[f] = {
           y: dayData.y, m: dayData.m, d: dayData.d,
@@ -1005,7 +921,7 @@ function addIndividualCard(){
   div.innerHTML = `
     <div class="person-header">
       <span class="person-title">Individual</span>
-      <button type="button" class="btn-remove" aria-label="Remove individual">Remove</button>
+      <button type="button" class="btn-remove">Remove</button>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -1038,58 +954,135 @@ function collectIndividuals(){
 }
 
 /* ===== Validation & Alerts ===== */
-function showSuccess(){ hideMessages(); const el = document.getElementById('successMessage'); if (!el) return; el.style.display='block'; setTimeout(()=>{ el.style.display='none'; }, 5000); }
-function showError(msg){ hideMessages(); const el = document.getElementById('errorMessage'); if (!el) return; el.textContent = msg || 'Something went wrong.'; el.style.display='block'; setTimeout(()=>{ el.style.display='none'; }, 6000); }
-function hideMessages(){ const s=document.getElementById('successMessage'); const e=document.getElementById('errorMessage'); if (s) s.style.display='none'; if (e) e.style.display='none'; }
+function showSuccess(){ 
+  hideMessages(); 
+  const el = document.getElementById('successMessage'); 
+  if (!el) return; 
+  el.style.display='block'; 
+  setTimeout(()=>{ el.style.display='none'; }, 5000); 
+}
+function showError(msg){ 
+  hideMessages(); 
+  const el = document.getElementById('errorMessage'); 
+  if (!el) return; 
+  el.textContent = msg || 'Something went wrong.'; 
+  el.style.display='block'; 
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(()=>{ el.style.display='none'; }, 8000); 
+}
+function hideMessages(){ 
+  const s=document.getElementById('successMessage'); 
+  const e=document.getElementById('errorMessage'); 
+  if (s) s.style.display='none'; 
+  if (e) e.style.display='none'; 
+}
 
 function validateSelfFlow(){
-  if (!document.getElementById('selfConfirm18').checked){ showError('Please confirm you are an individual 18+.'); return false; }
   const first = (document.getElementById('selfFirstName').value||'').trim();
   const last  = (document.getElementById('selfLastName').value||'').trim();
   const email = (document.getElementById('selfEmail').value||'').trim();
   const phone = (document.getElementById('selfPhone').value||'').trim();
   const dob   = (document.getElementById('selfDob').value||'').trim();
-  if (!first || !last){ showError('Please enter your first and last name.'); return false; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ showError('Please enter a valid email.'); return false; }
-  if (!phone){ showError('Please enter your phone number.'); return false; }
-  if (!dob){ showError('Please select your birth date.'); return false; }
+  
+  if (!first || !last){ 
+    showError('Missing required field: Please enter your first and last name.'); 
+    return false; 
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ 
+    showError('Invalid email: Please enter a valid email address or leave it blank.'); 
+    return false; 
+  }
+  if (!phone){ 
+    showError('Missing required field: Please enter your phone number.'); 
+    return false; 
+  }
+  if (!dob){ 
+    showError('Missing required field: Please select your birth date.'); 
+    return false; 
+  }
   const age = calcAgeFromDOBStr(dob);
-  if (age===null || age < 18){ showError('This flow is for individuals 18+.'); return false; }
+  if (age===null || age < 18){ 
+    showError('Age requirement: This flow is for individuals 18 and over.'); 
+    return false; 
+  }
   const appt = document.querySelector('input[name="apptTypeSelf"]:checked');
-  if (!appt){ showError('Please select a preferred appointment type.'); return false; }
-  if (!selectedSlot.self){ showError('Please choose an available time.'); return false; }
-  if (!document.getElementById('selfConsent').checked){ showError('Please consent to reminders.'); return false; }
-  if (!document.getElementById('selfEmergency').checked){ showError('Please confirm you are not experiencing an emergency.'); return false; }
+  if (!appt){ 
+    showError('Missing required field: Please select a preferred appointment type (At Home or At Office).'); 
+    return false; 
+  }
+  if (!selectedSlot.self){ 
+    showError('Missing required field: Please choose an available time slot.'); 
+    return false; 
+  }
+  if (!document.getElementById('selfConsent').checked){ 
+    showError('Missing required field: Please consent to receive appointment reminders.'); 
+    return false; 
+  }
+  if (!document.getElementById('selfEmergency').checked){ 
+    showError('Missing required field: Please confirm you are not experiencing an emergency.'); 
+    return false; 
+  }
   return true;
 }
+
 function validateGuardianFlow(){
-  if (!document.getElementById('guardianConfirm18').checked){ showError('Please confirm you are a parent/guardian 18+.'); return false; }
   const gf = (document.getElementById('guardFirstName').value||'').trim();
   const gl = (document.getElementById('guardLastName').value||'').trim();
   const ge = (document.getElementById('guardEmail').value||'').trim();
   const gp = (document.getElementById('guardPhone').value||'').trim();
-  if (!gf || !gl){ showError('Please enter parent/guardian name.'); return false; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ge)){ showError('Please enter a valid parent/guardian email.'); return false; }
-  if (!gp){ showError('Please enter parent/guardian phone.'); return false; }
+  
+  if (!gf || !gl){ 
+    showError('Missing required field: Please enter parent/guardian first and last name.'); 
+    return false; 
+  }
+  if (ge && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ge)){ 
+    showError('Invalid email: Please enter a valid parent/guardian email or leave it blank.'); 
+    return false; 
+  }
+  if (!gp){ 
+    showError('Missing required field: Please enter parent/guardian phone number.'); 
+    return false; 
+  }
   const people = collectIndividuals();
-  if (people.length === 0){ showError('Please add at least one individual.'); return false; }
-  for (const p of people){ if (!p.first || !p.last || !p.dob){ showError('Please complete each individual’s first name, last name, and DOB.'); return false; } }
+  if (people.length === 0){ 
+    showError('Missing required field: Please add at least one individual seeking services.'); 
+    return false; 
+  }
+  for (const p of people){ 
+    if (!p.first || !p.last || !p.dob){ 
+      showError('Missing required field: Please complete first name, last name, and birth date for all individuals.'); 
+      return false; 
+    } 
+  }
   const appt = document.querySelector('input[name="apptTypeGuardian"]:checked');
-  if (!appt){ showError('Please select a preferred appointment type.'); return false; }
-  if (!selectedSlot.guardian){ showError('Please choose a 3-hour start time.'); return false; }
-  if (!document.getElementById('guardConsent').checked){ showError('Please consent to reminders.'); return false; }
-  if (!document.getElementById('guardEmergency').checked){ showError('Please confirm you are not experiencing an emergency.'); return false; }
+  if (!appt){ 
+    showError('Missing required field: Please select a preferred appointment type (At Home or At Office).'); 
+    return false; 
+  }
+  if (!selectedSlot.guardian){ 
+    showError('Missing required field: Please choose a 3-hour start time.'); 
+    return false; 
+  }
+  if (!document.getElementById('guardConsent').checked){ 
+    showError('Missing required field: Please consent to receive appointment reminders.'); 
+    return false; 
+  }
+  if (!document.getElementById('guardEmergency').checked){ 
+    showError('Missing required field: Please confirm you are not experiencing an emergency.'); 
+    return false; 
+  }
   return true;
 }
 
 /* ===== Confirmation Card ===== */
 function showConfirmation(opts){
-  const card = document.getElementById('confirmationCard'); if (!card) return;
+  const card = document.getElementById('confirmationCard'); 
+  if (!card) return;
+  
   document.getElementById('confWhen').textContent = opts.whenText || '—';
   document.getElementById('confCounselor').textContent = opts.counselor || 'Assigned counselor';
-  document.getElementById('confTeleRow').style.display = 'none';
   document.getElementById('confInPersonRow').style.display = '';
-  // Outlook button removed entirely per request (also removed on DOMContentLoaded)
+  
   card.classList.add('visible');
   card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -1099,14 +1092,13 @@ async function handleSubmit(e){
   e.preventDefault();
   hideMessages();
 
-  const selfChecked = document.getElementById('selfConfirm18').checked;
-  const guardChecked = document.getElementById('guardianConfirm18').checked;
-
-  if (!selfChecked && !guardChecked){ showError('Please choose a flow: Individual (18+) or Parent/Guardian (18+).'); return; }
-  if (selfChecked && guardChecked){ showError('Please use one flow at a time. Uncheck one of the confirmations.'); return; }
+  if (!activeFlow){ 
+    showError('Please select whether you are an individual or parent/guardian at the top of the form.'); 
+    return; 
+  }
 
   try{
-    if (selfChecked){
+    if (activeFlow === 'self'){
       if (!validateSelfFlow()) return;
 
       const first = document.getElementById('selfFirstName').value.trim();
@@ -1114,7 +1106,7 @@ async function handleSubmit(e){
       const email = document.getElementById('selfEmail').value.trim();
       const phone = document.getElementById('selfPhone').value.trim();
       const dob   = document.getElementById('selfDob').value.trim();
-      const appt  = document.querySelector('input[name="apptTypeSelf"]:checked').value; // home|office
+      const appt  = document.querySelector('input[name="apptTypeSelf"]:checked').value;
       const alt   = (document.getElementById('selfAltAvailability').value||'').trim();
       const notes = (document.getElementById('selfNotes').value||'').trim();
 
@@ -1126,6 +1118,7 @@ async function handleSubmit(e){
 
       const subject = (appt==='home'?'In-person (Home)':'In-person (Office)') + ' appointment';
       let body = `Appointment scheduled (${appt==='home'?'home in-person':'office in-person'}) for ${first} ${last} on ${humanTimeDisplayYMD(selectedSlot.self.y, selectedSlot.self.m, selectedSlot.self.d, st, endHM)}. Contact: ${phone}.`;
+      if (email) body += ` Email: ${email}.`;
       if (alt) body += ` Alternate availability: ${alt}.`;
       if (notes) body += ` Additional notes: ${notes}.`;
       body += ` Date of Birth: ${dob}. Over 18: Yes.`;
@@ -1136,14 +1129,14 @@ async function handleSubmit(e){
         end:   { dateTime: endDT,   timeZone: CONFIG.TIMEZONE },
         expectedDate: `${selectedSlot.self.y}-${p2(selectedSlot.self.m)}-${p2(selectedSlot.self.d)}`,
         location: { displayName: appt==='home' ? 'in-person-home' : 'in-person-office' },
-      attendees: [{ address: email, name: `${first} ${last}`, type:'required' }],
+        attendees: email ? [{ address: email, name: `${first} ${last}`, type:'required' }] : [],
         allowNewTimeProposals: true,
         transactionId: generateUUID(),
         dob, over18: 'yes', guardian: null, household: null
       };
+      
       setButtonLoading(document.querySelector('#bookingForm button[type="submit"]'), true, 'Booking…');
       setGlobalLoading(true, 'Booking your appointment…');
-
 
       const resp = await fetch(withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY), {
         method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
@@ -1154,13 +1147,12 @@ async function handleSubmit(e){
         throw new Error(`Booking failed (${resp.status}) ${result.error || ''}`);
       }
 
-      // compute details BEFORE clearing
       const whenText = humanTimeDisplayYMD(selectedSlot.self.y, selectedSlot.self.m, selectedSlot.self.d, st, endHM);
       const counselor = (result?.raw?.organizer?.emailAddress?.name) || (result?.raw?.organizer?.emailAddress?.address) || 'Assigned counselor';
 
       showSuccess();
-      clearForm();                 // ✅ clear the form immediately after success
-      showConfirmation({ whenText, counselor }); // show confirmation card
+      hideFormShowConfirmation();
+      showConfirmation({ whenText, counselor });
 
     } else {
       if (!validateGuardianFlow()) return;
@@ -1170,7 +1162,7 @@ async function handleSubmit(e){
       const ge = document.getElementById('guardEmail').value.trim();
       const gp = document.getElementById('guardPhone').value.trim();
       const people = collectIndividuals();
-      const appt   = document.querySelector('input[name="apptTypeGuardian"]:checked').value; // home|office
+      const appt   = document.querySelector('input[name="apptTypeGuardian"]:checked').value;
       const alt    = (document.getElementById('guardAltAvailability').value||'').trim();
       const notes  = (document.getElementById('guardNotes').value||'').trim();
 
@@ -1182,6 +1174,7 @@ async function handleSubmit(e){
 
       const subject = 'Household intake (3-hour block)';
       let body = `Household intake (${appt==='home'?'home in-person':'office in-person'}) booked by ${gf} ${gl} on ${humanTimeDisplayYMD(selectedSlot.guardian.y, selectedSlot.guardian.m, selectedSlot.guardian.d, st, endHM)}. Contact: ${gp}.`;
+      if (ge) body += ` Email: ${ge}.`;
       body += ' Individuals: ' + people.map(p => `${p.first} ${p.last} [DOB: ${p.dob}${p.under18===null?'':`, ${p.under18?'Under 18':'18+'}`}]`).join('; ') + '.';
       if (alt) body += ` Alternate availability: ${alt}.`;
       if (notes) body += ` Additional notes: ${notes}.`;
@@ -1202,14 +1195,14 @@ async function handleSubmit(e){
         end:   { dateTime: endDT,   timeZone: CONFIG.TIMEZONE },
         expectedDate: `${selectedSlot.guardian.y}-${p2(selectedSlot.guardian.m)}-${p2(selectedSlot.guardian.d)}`,
         location: { displayName: appt==='home' ? 'in-person-home' : 'in-person-office' },
-        attendees: [{ address: ge, name: `${gf} ${gl}`, type:'required' }],
+        attendees: ge ? [{ address: ge, name: `${gf} ${gl}`, type:'required' }] : [],
         allowNewTimeProposals: true,
         transactionId: generateUUID(),
         dob: null, over18: 'yes', guardian: { name: `${gf} ${gl}`, phone: gp, email: ge }, household
       };
+      
       setButtonLoading(document.querySelector('#bookingForm button[type="submit"]'), true, 'Booking…');
-     setGlobalLoading(true, 'Booking your appointment…');
-
+      setGlobalLoading(true, 'Booking your appointment…');
 
       const resp = await fetch(withKey(CONFIG.BOOK_APPOINTMENT_URL, CONFIG.BOOK_APPOINTMENT_KEY), {
         method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
@@ -1224,37 +1217,46 @@ async function handleSubmit(e){
       const counselor = (result?.raw?.organizer?.emailAddress?.name) || (result?.raw?.organizer?.emailAddress?.address) || 'Assigned counselor';
 
       showSuccess();
-      clearForm();                 // ✅ clear immediately after success
+      hideFormShowConfirmation();
       showConfirmation({ whenText, counselor });
     }
   }catch(err){
     console.error(err);
-    showError('There was an error booking your appointment. Please try again or contact us.');
+    showError('There was an error booking your appointment. Please try again or contact us at 706-955-9224.');
   }
   finally {
-  setButtonLoading(document.querySelector('#bookingForm button[type="submit"]'), false);
-  setGlobalLoading(false);
+    setButtonLoading(document.querySelector('#bookingForm button[type="submit"]'), false);
+    setGlobalLoading(false);
+  }
 }
+
+/* ===== Hide form and show only confirmation ===== */
+function hideFormShowConfirmation(){
+  document.getElementById('flowSelf')?.style.setProperty('display', 'none');
+  document.getElementById('flowGuardian')?.style.setProperty('display', 'none');
 }
 
 /* ===== Clear ===== */
 function clearForm(){
-  const form = document.getElementById('bookingForm'); if (form) form.reset();
+  const form = document.getElementById('bookingForm'); 
+  if (form) form.reset();
 
-  selectedSlot.self = null; selectedSlot.guardian = null;
-  selectedDate.self = null;          // ← add
-  selectedDate.guardian = null;      // ← add
-  const tsSelf = document.getElementById('timeSlotsSelf'); if (tsSelf) tsSelf.innerHTML = '';
-  const tsG = document.getElementById('timeSlotsGuardian'); if (tsG) tsG.innerHTML = '';
+  selectedSlot.self = null; 
+  selectedSlot.guardian = null;
+  selectedDate.self = null;
+  selectedDate.guardian = null;
+  
+  const tsSelf = document.getElementById('timeSlotsSelf'); 
+  if (tsSelf) tsSelf.innerHTML = '';
+  const tsG = document.getElementById('timeSlotsGuardian'); 
+  if (tsG) tsG.innerHTML = '';
 
-  // Reset individuals list to a single blank card
   const list = document.getElementById('individualsList');
   if (list){
     list.innerHTML = '';
     addIndividualCard();
   }
 
-  // Clear any chip visual states
   document.querySelectorAll('.slot-chip').forEach(el=>{
     el.classList.remove('selected');
     el.style.background=''; el.style.color=''; el.style.borderColor=''; el.style.boxShadow='';
@@ -1263,24 +1265,71 @@ function clearForm(){
   hideMessages();
 }
 
+function resetToSelection(){
+  clearForm();
+  activeFlow = null;
+  
+  document.getElementById('flowSelection').style.display = 'block';
+  document.getElementById('bookingForm').classList.remove('visible');
+  document.getElementById('flowSelf').style.display = 'none';
+  document.getElementById('flowGuardian').style.display = 'none';
+  document.getElementById('confirmationCard').classList.remove('visible');
+  
+  document.getElementById('flowTypeSelf').checked = false;
+  document.getElementById('flowTypeGuardian').checked = false;
+  document.getElementById('selfOptionCard').classList.remove('selected');
+  document.getElementById('guardianOptionCard').classList.remove('selected');
+  
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 /* ===== Wiring ===== */
 document.addEventListener('DOMContentLoaded', () => {
-  // Remove "Open in Outlook" button entirely
-  document.getElementById('confOutlookLink')?.remove();
-
-  // "Book another" should hide card and scroll to top
-  document.getElementById('confBookAnother')?.addEventListener('click', () => {
-    document.getElementById('confirmationCard')?.classList.remove('visible');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  
+  // Flow selection handlers
+  const selfRadio = document.getElementById('flowTypeSelf');
+  const guardianRadio = document.getElementById('flowTypeGuardian');
+  const selfCard = document.getElementById('selfOptionCard');
+  const guardianCard = document.getElementById('guardianOptionCard');
+  
+  selfRadio.addEventListener('change', () => {
+    if (selfRadio.checked) {
+      activeFlow = 'self';
+      selfCard.classList.add('selected');
+      guardianCard.classList.remove('selected');
+      
+      setTimeout(() => {
+        document.getElementById('flowSelection').style.display = 'none';
+        document.getElementById('bookingForm').classList.add('visible');
+        document.getElementById('flowSelf').style.display = 'block';
+        document.getElementById('flowGuardian').style.display = 'none';
+        document.getElementById('flowSelf').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
   });
+  
+  guardianRadio.addEventListener('change', () => {
+    if (guardianRadio.checked) {
+      activeFlow = 'guardian';
+      guardianCard.classList.add('selected');
+      selfCard.classList.remove('selected');
+      
+      setTimeout(() => {
+        document.getElementById('flowSelection').style.display = 'none';
+        document.getElementById('bookingForm').classList.add('visible');
+        document.getElementById('flowGuardian').style.display = 'block';
+        document.getElementById('flowSelf').style.display = 'none';
+        document.getElementById('flowGuardian').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  });
+  
+  // Make cards clickable
+  selfCard.addEventListener('click', () => selfRadio.click());
+  guardianCard.addEventListener('click', () => guardianRadio.click());
 
-  // Mutually exclusive flow toggles
-  const selfC = document.getElementById('selfConfirm18');
-  const guardC = document.getElementById('guardianConfirm18');
-  if (selfC && guardC){
-    selfC.addEventListener('change', ()=>{ if (selfC.checked) guardC.checked = false; });
-    guardC.addEventListener('change', ()=>{ if (guardC.checked) selfC.checked = false; });
-  }
+  // "Book another" button
+  document.getElementById('confBookAnother')?.addEventListener('click', resetToSelection);
 
   // Load Slots buttons
   document.getElementById('loadSlotsSelfBtn')?.addEventListener('click', ()=> loadAvailableSlots('self'));
@@ -1289,21 +1338,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add individual
   document.getElementById('addIndividualBtn')?.addEventListener('click', addIndividualCard);
 
-  // Ensure first person card has a remove button if missing
-  (function ensureFirstPersonRemove(){
-    const firstCard = document.querySelector('#individualsList .person-card');
-    if (firstCard && !firstCard.querySelector('.btn-remove')){
-      const header = firstCard.querySelector('.person-header');
-      const btn = document.createElement('button');
-      btn.type='button'; btn.className='btn-remove'; btn.textContent='Remove';
-      btn.addEventListener('click', ()=> firstCard.remove());
-      header?.appendChild(btn);
+  // Ensure first person card has remove button
+  const firstCard = document.querySelector('#individualsList .person-card');
+  if (firstCard) {
+    const removeBtn = firstCard.querySelector('.btn-remove');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => firstCard.remove());
     }
-  })();
+  }
 
   // Phone masks
   function wirePhoneMask(id){
-    const el = document.getElementById(id); if (!el) return;
+    const el = document.getElementById(id); 
+    if (!el) return;
     el.addEventListener('input', e => {
       let v = e.target.value.replace(/\D/g,'').slice(0,10);
       if (v.length>6) e.target.value = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
@@ -1311,14 +1358,18 @@ document.addEventListener('DOMContentLoaded', () => {
       else e.target.value = v;
     });
   }
-  wirePhoneMask('selfPhone'); wirePhoneMask('guardPhone');
+  wirePhoneMask('selfPhone'); 
+  wirePhoneMask('guardPhone');
 
-  // Clear + Submit
-  document.querySelector('.button-group .btn.btn-secondary')?.addEventListener('click', clearForm);
+  // Clear buttons
+  document.getElementById('clearSelfBtn')?.addEventListener('click', clearForm);
+  document.getElementById('clearGuardianBtn')?.addEventListener('click', clearForm);
+  
+  // Submit
   document.getElementById('bookingForm')?.addEventListener('submit', handleSubmit);
 });
 </script>
 
-
 </body>
 </html>
+            
