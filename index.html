@@ -24,10 +24,10 @@
       --danger:  #ef4444;
 
       /* Neutrals */
-      --bg:      #f6f7fb;
-      --card:    #ffffff;
-      --muted:   #6b7280;
-      --text:    #0f172a;
+      --bg:       #f6f7fb;
+      --card:     #ffffff;
+      --muted:    #6b7280;
+      --text:     #0f172a;
       --text-soft:#334155;
       --border:  #e5e7eb;
 
@@ -54,9 +54,9 @@
 
     @media (prefers-color-scheme: dark){
       :root{
-        --bg:      #0b1220;
-        --card:    #0f172a;
-        --text:    #e5e7eb;
+        --bg:       #0b1220;
+        --card:     #0f172a;
+        --text:     #e5e7eb;
         --text-soft:#cbd5e1;
         --border:  #1f2937;
         --shadow:  0 8px 24px rgba(0,0,0,.5);
@@ -482,7 +482,13 @@
             </div>
             <div class="form-group">
               <label for="selfPhone">Phone Number <span class="required">*</span></label>
-              <input type="tel" id="selfPhone" placeholder="123-456-7890" />
+              <input 
+                type="tel" 
+                id="selfPhone" 
+                placeholder="+1 234-567-8900" 
+                maxlength="20" 
+                oninput="this.value = this.value.replace(/[^0-9+\- ]/g, '')"
+              />
             </div>
           </div>
           <div class="form-group">
@@ -566,7 +572,13 @@
               </div>
               <div class="form-group">
                 <label for="guardPhone">Phone Number <span class="required">*</span></label>
-                <input type="tel" id="guardPhone" placeholder="123-456-7890" />
+                <input 
+                  type="tel" 
+                  id="guardPhone" 
+                  placeholder="+1 234-567-8900" 
+                  maxlength="20" 
+                  oninput="this.value = this.value.replace(/[^0-9+\- ]/g, '')"
+                />
               </div>
             </div>
           </div>
@@ -990,9 +1002,9 @@ async function loadAvailableSlots(mode){
     if(!resp.ok) throw new Error('Failed to load slots ('+resp.status+') ' + text);
     const data = text ? JSON.parse(text) : {};
     const list = Array.isArray(data) ? data
-             : (Array.isArray(data.free_slots)? data.free_slots
-             : (Array.isArray(data.freeSlots)? data.freeSlots
-             : (Array.isArray(data.slots)? data.slots : [])));
+              : (Array.isArray(data.free_slots)? data.free_slots
+              : (Array.isArray(data.freeSlots)? data.freeSlots
+              : (Array.isArray(data.slots)? data.slots : [])));
     availableSlots = list;
 
     if (mode === 'guardian'){
@@ -1447,20 +1459,6 @@ document.addEventListener('DOMContentLoaded', () => {
       removeBtn.addEventListener('click', () => firstCard.remove());
     }
   }
-
-  // Phone masks
-  function wirePhoneMask(id){
-    const el = document.getElementById(id); 
-    if (!el) return;
-    el.addEventListener('input', e => {
-      let v = e.target.value.replace(/\D/g,'').slice(0,10);
-      if (v.length>6) e.target.value = v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6);
-      else if (v.length>3) e.target.value = v.slice(0,3)+'-'+v.slice(3);
-      else e.target.value = v;
-    });
-  }
-  wirePhoneMask('selfPhone'); 
-  wirePhoneMask('guardPhone');
 
   // Clear buttons
   document.getElementById('clearSelfBtn')?.addEventListener('click', clearForm);
