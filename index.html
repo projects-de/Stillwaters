@@ -392,7 +392,7 @@
     }
 
     .btn[disabled]{
-      opacity:.7; cursor:not-allowed; transform:none !important; box-shadow:none !important;
+      opacity:.6; cursor:not-allowed; transform:none !important; box-shadow:none !important;
     }
 
     /* Full-screen overlay for submit */
@@ -639,19 +639,7 @@
             </div>
             <div id="timeSlotsGuardian" class="time-slots"></div>
           </div>
-  
-          <div class="form-section">
-            <h3>Additional Information</h3>
-            <div class="form-group">
-              <label for="guardAltAvailability">Alternate Availability (Optional)</label>
-              <textarea id="guardAltAvailability" placeholder="If the available slots don't work, describe your availability"></textarea>
-            </div>
-            <div class="form-group">
-              <label for="guardNotes">Additional Notes (Optional)</label>
-              <textarea id="guardNotes" placeholder="Any other information you'd like us to know"></textarea>
-            </div>
-          </div>
-  
+          
           <div class="form-section">
             <h3>Consent &amp; Acknowledgments</h3>
             <label class="checkbox-group">
@@ -1028,25 +1016,35 @@ async function loadAvailableSlots(mode){
 }
 
 /* ===== Individuals (guardian flow) ===== */
+
+// Helper to disable/enable the add button based on limit
+function updateAddButtonState() {
+    const list = document.getElementById('individualsList');
+    const count = list.querySelectorAll('.person-card').length;
+    const apptType = document.querySelector('input[name="apptTypeGuardian"]:checked')?.value;
+    const btn = document.getElementById('addIndividualBtn');
+    
+    // Determine limit
+    let max = 6; // default safety limit
+    if (apptType === 'office') max = 2;
+
+    if (count >= max) {
+        btn.disabled = true;
+        btn.textContent = 'Maximum individuals reached';
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    } else {
+        btn.disabled = false;
+        btn.textContent = '+ Add Another Individual';
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    }
+}
+
 function addIndividualCard(){
   const list = document.getElementById('individualsList');
   
-  // NEW LOGIC: Check count limit before adding
-  const currentCount = list.querySelectorAll('.person-card').length;
-  const apptType = document.querySelector('input[name="apptTypeGuardian"]:checked')?.value;
-  
-  // Strict limit for Office
-  if (apptType === 'office' && currentCount >= 2) {
-     showError('For In-Office appointments, a maximum of 2 individuals can be booked.');
-     return;
-  }
-  
-  // General fallback safety limit (e.g., 6)
-  if (currentCount >= 6) {
-     showError('Maximum number of individuals reached.');
-     return;
-  }
-
+  // Create card
   const div = document.createElement('div');
   div.className = 'person-card';
   div.innerHTML = `
@@ -1069,8 +1067,17 @@ function addIndividualCard(){
       <input type="date" />
     </div>
   `;
-  div.querySelector('.btn-remove').addEventListener('click', () => div.remove());
+  
+  // Handle remove logic
+  div.querySelector('.btn-remove').addEventListener('click', () => {
+      div.remove();
+      updateAddButtonState(); // Re-evaluate button state on remove
+  });
+  
   list.appendChild(div);
+  
+  // Check state after adding
+  updateAddButtonState();
 }
 
 function collectIndividuals(){
@@ -1314,8 +1321,9 @@ async function handleSubmit(e){
       const gp = document.getElementById('guardPhone').value.trim();
       const people = collectIndividuals();
       const appt   = document.querySelector('input[name="apptTypeGuardian"]:checked').value;
-      const alt    = (document.getElementById('guardAltAvailability').value||'').trim();
-      const notes  = (document.getElementById('guardNotes').value||'').trim();
+      // Notes section was removed, so these will be empty
+      const alt    = '';
+      const notes  = '';
 
       const st = selectedSlot.guardian.start;
       const dur = selectedSlot.guardian.durationMinutes;
@@ -1327,8 +1335,8 @@ async function handleSubmit(e){
       let body = `Household intake (${appt==='home'?'home in-person':'office in-person'}) booked by ${gf} ${gl} on ${humanTimeDisplayYMD(selectedSlot.guardian.y, selectedSlot.guardian.m, selectedSlot.guardian.d, st, endHM)}. Contact: ${gp}.`;
       if (ge) body += ` Email: ${ge}.`;
       body += ' Individuals: ' + people.map(p => `${p.first} ${p.last} [DOB: ${p.dob}${p.under18===null?'':`, ${p.under18?'Under 18':'18+'}`}]`).join('; ') + '.';
-      if (alt) body += ` Alternate availability: ${alt}.`;
-      if (notes) body += ` Additional notes: ${notes}.`;
+      // if (alt) body += ` Alternate availability: ${alt}.`; // Removed
+      // if (notes) body += ` Additional notes: ${notes}.`;   // Removed
 
       const household = {
         hasSiblings: true, householdBlockMinutes: dur,
@@ -1482,6 +1490,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Watch for radio changes in the Guardian Flow to warn about limits
   document.querySelectorAll('input[name="apptTypeGuardian"]').forEach(r => {
     r.addEventListener('change', function(){
+      // Re-evaluate button state
+      updateAddButtonState();
+      
       const list = document.getElementById('individualsList');
       const count = list.querySelectorAll('.person-card').length;
       if (this.value === 'office' && count > 2) {
@@ -1509,7 +1520,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (firstCard) {
     const removeBtn = firstCard.querySelector('.btn-remove');
     if (removeBtn) {
-      removeBtn.addEventListener('click', () => firstCard.remove());
+      removeBtn.addEventListener('click', () => {
+          firstCard.remove();
+          updateAddButtonState();
+      });
     }
   }
 
