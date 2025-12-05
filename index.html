@@ -449,11 +449,16 @@
 
       <div id="confirmationCard" class="confirm-card" aria-live="polite">
         <h3>✅ Your Appointment Has Been Submitted!</h3>
-        <div class="confirm-row"><b>Date & time</b><span id="confWhen">—</span></div>
-        <div class="confirm-row"><b>Counselor</b><span id="confCounselor">—</span></div>
-        <div class="confirm-row" id="confInPersonRow"><b>Visit info</b>
+        <div class="confirm-row">
+          <b>Date & time</b>
+          <span id="confWhen">—</span>
+        </div>
+        
+        <div class="confirm-row" id="confInPersonRow">
+          <b>Visit info</b>
           <span id="confVisitText">We'll send directions and arrival details via email/text.</span>
         </div>
+
         <div class="confirm-actions">
           <button id="confBookAnother" type="button" class="btn btn-primary btn-pill">Book Another Appointment</button>
         </div>
@@ -1025,6 +1030,23 @@ async function loadAvailableSlots(mode){
 /* ===== Individuals (guardian flow) ===== */
 function addIndividualCard(){
   const list = document.getElementById('individualsList');
+  
+  // NEW LOGIC: Check count limit before adding
+  const currentCount = list.querySelectorAll('.person-card').length;
+  const apptType = document.querySelector('input[name="apptTypeGuardian"]:checked')?.value;
+  
+  // Strict limit for Office
+  if (apptType === 'office' && currentCount >= 2) {
+     showError('For In-Office appointments, a maximum of 2 individuals can be booked.');
+     return;
+  }
+  
+  // General fallback safety limit (e.g., 6)
+  if (currentCount >= 6) {
+     showError('Maximum number of individuals reached.');
+     return;
+  }
+
   const div = document.createElement('div');
   div.className = 'person-card';
   div.innerHTML = `
@@ -1050,6 +1072,7 @@ function addIndividualCard(){
   div.querySelector('.btn-remove').addEventListener('click', () => div.remove());
   list.appendChild(div);
 }
+
 function collectIndividuals(){
   const rows = Array.from(document.querySelectorAll('#individualsList .person-card'));
   return rows.map(row => {
@@ -1168,6 +1191,13 @@ function validateGuardianFlow(){
     showError('Missing required field: Please select a preferred appointment type (At Home or At Office).'); 
     return false; 
   }
+  
+  // Logic: Limit office appointments to max 2 individuals
+  if (appt.value === 'office' && people.length > 2) {
+    showError('For In-Office appointments, a maximum of 2 individuals can be booked.');
+    return false;
+  }
+
   if (!selectedSlot.guardian){ 
     showError('Missing required field: Please choose a 3-hour start time.'); 
     return false; 
@@ -1189,7 +1219,19 @@ function showConfirmation(opts){
   if (!card) return;
   
   document.getElementById('confWhen').textContent = opts.whenText || '—';
-  document.getElementById('confCounselor').textContent = opts.counselor || 'Assigned counselor';
+  
+  // Logic to display specific message based on location
+  const visitText = document.getElementById('confVisitText');
+  if (visitText) {
+    if (opts.apptType === 'home') {
+      visitText.textContent = 'A counselor will come to you.';
+    } else if (opts.apptType === 'office') {
+      visitText.textContent = 'We will see you in the office.';
+    } else {
+      visitText.textContent = 'We will send arrival details via email/text.';
+    }
+  }
+
   document.getElementById('confInPersonRow').style.display = '';
   
   card.classList.add('visible');
@@ -1261,7 +1303,7 @@ async function handleSubmit(e){
 
       showSuccess();
       hideFormShowConfirmation();
-      showConfirmation({ whenText, counselor });
+      showConfirmation({ whenText, counselor, apptType: appt });
 
     } else {
       if (!validateGuardianFlow()) return;
@@ -1327,7 +1369,7 @@ async function handleSubmit(e){
 
       showSuccess();
       hideFormShowConfirmation();
-      showConfirmation({ whenText, counselor });
+      showConfirmation({ whenText, counselor, apptType: appt });
     }
   }catch(err){
     console.error(err);
@@ -1435,6 +1477,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('flowGuardian').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 300);
     }
+  });
+
+  // Watch for radio changes in the Guardian Flow to warn about limits
+  document.querySelectorAll('input[name="apptTypeGuardian"]').forEach(r => {
+    r.addEventListener('change', function(){
+      const list = document.getElementById('individualsList');
+      const count = list.querySelectorAll('.person-card').length;
+      if (this.value === 'office' && count > 2) {
+         showError("Please remove extra individuals. Only 2 are allowed for In-Office appointments.");
+      }
+    });
   });
   
   // Make cards clickable
